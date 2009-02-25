@@ -4,7 +4,7 @@ The fileinfo command opens a VMFS volume, then opens the specified file on the v
 
 Here is a sample session that gathers the info from a remote host:
 {{{
->java -jar fvmfs.jar /vmfs/devices/disks/vmhba1:0:7:0 fileinfo /ExchangeServer/ExchangeServer-flat.vmdk
+>java -jar fvmfs.jar /dev/sda5 fileinfo /ExchangeServer/ExchangeServer-flat.vmdk
 }}}
 
 The output is:
