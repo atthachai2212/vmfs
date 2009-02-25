@@ -1,6 +1,8 @@
 #summary Overview of the VMFS Driver CLI
 
-<wiki:toc />
+{{{
+<wiki:toc/>
+}}}
 
 == How to run ==
 
