@@ -1,0 +1,142 @@
+<?xml version="1.0"?>
+<project name="fvmfs" default="manual" basedir=".">
+	<property name="root" location=".." />
+	<property environment="env" />
+
+	<path id="base.classpath">
+		<fileset dir="${root}/lib/">
+			<include name="**/*.jar" />
+		</fileset>
+		<pathelement location="${root}/bin/" />
+	</path>
+
+    <path id="test.classpath">
+        <path refid="base.classpath"></path>
+        <pathelement location="${root}/testbin/" />
+    </path>
+    	
+	<target name="clean">
+        <delete dir="${root}/bin" failonerror="true" />
+		<mkdir dir="${root}/bin" />
+		        
+		<delete dir="${root}/deploy" failonerror="true" />
+		<mkdir dir="${root}/deploy" />
+        
+        <delete dir="${root}/javadoc" failonerror="true" />
+        <mkdir dir="${root}/javadoc" />
+        
+        <delete dir="${root}/build/junit-tests" failonerror="true" />
+        <mkdir dir="${root}/build/junit-tests" />
+        
+		<delete dir="${root}/testbin" failonerror="true" />
+		<mkdir dir="${root}/testbin" />
+	</target>
+
+	<target name="jar">
+		<jar destfile="${root}/deploy/fvmfs.jar" duplicate="fail" compress="true">
+			<fileset dir="${root}/bin" includes="**/*.class" />
+			<manifest>
+				<attribute name="Main-Class" value="com.fluidops.tools.vmfs.VMFSTools" />
+				<attribute name="Class-Path" value="trilead-ssh2-build211.jar" />
+				<attribute name="built-by" value="fluid Operations GmbH" />
+				<attribute name="project" value="${module}" />
+				<attribute name="version" value="${build.version}" />
+				<attribute name="date" value="${build.date}" />
+				<attribute name="build" value="${build.number}" />
+				<attribute name="ProductName" value="fluidOps VMFS" />
+				<attribute name="ProductLongName" value="fluidOps VMFS Driver and Tools" />
+				<attribute name="CompanyName" value="fluid Operations GmbH" />
+				<attribute name="ProductVersion" value="${build.version}" />
+				<attribute name="ProductContact" value="info@fluidops.com" />
+			</manifest>
+		</jar>
+	</target>
+
+	<target name="compile">
+		<javac srcdir="${root}/src" destdir="${root}/bin" classpathref="base.classpath" debug="on" optimize="on" fork="false" verbose="false" listfiles="false" includes="**/*.java">
+			<compilerarg value="-Xlint" />
+		</javac>
+	</target>
+
+	<target name="javadoc">
+	    <javadoc packagenames="com.fluidops.*"
+            sourcepath="${root}/src"
+            classpathref="base.classpath" 
+            defaultexcludes="yes" 
+            destdir="${root}/javadoc" 
+            author="true" 
+            version="true" 
+            use="true" 
+            public="true" 
+            source="1.6" 
+	        serialwarn="true"
+            stylesheetfile="${root}/build/doc/stylesheet_fbase.css"
+            linksource="true"
+            windowtitle="fluid Operations API documentation">
+            <doctitle>
+                <![CDATA[<h1>fluid Base</h1>]]>
+            </doctitle>
+            <header>
+                <![CDATA[<img src="images/fluidops.png">]]>
+            </header>
+            <bottom>
+                <![CDATA[<i>Copyright &#169; fluid Operations GmbH. All Rights Reserved.</i>]]>
+            </bottom>
+	    </javadoc>
+		<copy todir="${root}/javadoc" overwrite="true">
+            <fileset dir="${root}/build/doc">
+                <include name="images/*" />
+            </fileset>
+		</copy>
+	</target>
+	
+    <target name="compileTest" depends="compile">
+        <javac destdir="${root}/testbin" classpathref="base.classpath" debug="off" optimize="on" fork="false" verbose="false" listfiles="false" includes="**/*.java">
+            <src path="${root}/test" />
+        </javac>
+    </target>
+	
+    <target name="junit" depends="compileTest">
+        <junit printsummary="yes">
+            <classpath refid="test.classpath" />
+            <formatter type="xml" />
+            <test outfile="junit-tests/fbase" haltonfailure="yes" haltonerror="yes" name="com.fluidops.BaseTests"/>
+        </junit>
+    </target>
+            	
+	<target name="autoprops">
+		<property name="module" value="${env.JOB_NAME}" />
+		<property name="build.schedule" value="${env.BUILD_TAG}" />
+		<property name="build.version" value="${env.BUILD_VERSION}.${env.BUILD_NUMBER}" />
+		<property name="build.number" value="${env.BUILD_NUMBER}" />
+		<property name="build.date" value="${env.BUILD_ID}" />
+		<property name="build.executor" value="${env.EXECUTOR_NUMBER}" />
+		<property name="build.workspace" value="${env.WORKSPACE}" />
+		<property name="build.svn_revision" value="${env.SVN_REVISION}" />
+
+		<echo message="Generating module ${module}" />
+		<echo message="Generating in Schedule ${build.schedule}" />
+		<echo message="Generating Version ${build.version}" />
+		<echo message="Generating Build ${build.number}" />
+		<echo message="Generating Date ${build.date}" />
+	</target>
+
+	<target name="manualprops">
+		<property name="module" value="fvmfs" />
+		<property name="build.schedule" value="manual" />
+		<property name="build.version" value="9.9.0.9999" />
+		<property name="build.number" value="9999" />
+		<tstamp>
+			<format property="build.date" pattern="yyyy-MM-dd_hh-mm-ss" />
+		</tstamp>
+
+		<echo message="Generating module ${module}" />
+		<echo message="Generating in Schedule ${build.schedule}" />
+		<echo message="Generating Version ${build.version}" />
+		<echo message="Generating Build ${build.number}" />
+		<echo message="Generating Date ${build.date}" />
+	</target>
+
+	<target name="auto" depends="autoprops, clean, compile, junit, jar, javadoc" />
+	<target name="manual" depends="manualprops, clean, compile, jar, javadoc" />
+</project>
