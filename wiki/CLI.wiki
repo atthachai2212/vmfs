@@ -52,7 +52,7 @@ This includes the file size, and all allocated blocks on the volume (list of all
 
 === filecopy file startpos length ===
 
-The [CLI_filecopy filecopy] command copies the file's content, starting at startpos, to stdout.
+The [CLI_filedump filecopy] command copies the file's content, starting at startpos, to stdout.
 Using this command, files can be copied from the VMFS volume to the local file system.
 
 === filedump file startpos length ===
