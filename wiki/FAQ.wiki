@@ -15,6 +15,6 @@ fluidOps strives for openness and therefore provides this technology as a free s
 
 Right and wrong:
 
-* Right, it is no driver running in kernel space.
+- Right, it is no driver running in kernel space.
 
-* Wrong, because you can easily hook for example WebDAV frontend in front of this VMFS driver lib, and then you can regularly mount the VMFS as a file system under the major operating systems. (Expect a checkin soon that enables this feature...)
+- Wrong, because you can easily hook for example WebDAV frontend in front of this VMFS driver lib, and then you can regularly mount the VMFS as a file system under the major operating systems. (Expect a checkin soon that enables this feature...)
