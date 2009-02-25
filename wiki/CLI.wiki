@@ -1,8 +1,8 @@
 #summary Overview of the VMFS Driver CLI
 
-<wiki:toc/>
-
 == How to run ==
+
+<wiki:toc />
 
 To start the VMFS Driver CLI Tools, type
 {{{
