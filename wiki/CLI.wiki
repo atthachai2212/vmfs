@@ -2,8 +2,6 @@
 
 == How to run ==
 
-<wiki:toc />
-
 To start the VMFS Driver CLI Tools, type
 {{{
 java -jar fvmfs.jar
