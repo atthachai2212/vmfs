@@ -1,0 +1,13 @@
+#summary How to Build the Project
+
+
+= Building with Ant =
+
+The VMFS driver comes with an ant build file in {root}/build/build.xml
+
+Executing ant will compile all sources, build the binary in {root}/deploy/fvmfs.jar and the documentation in {root}/javadoc.
+
+= Eclipse =
+
+The .classpath and .project files are included in the source code distribution.
+Eclipse automatically recognizes this and properly sets up the project.
