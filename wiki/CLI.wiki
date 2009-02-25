@@ -1,0 +1,61 @@
+#summary Overview of the VMFS Driver CLI
+
+== How to run ==
+
+To start the VMFS Driver CLI Tools, type
+{{{
+java -jar fvmfs.jar
+}}}
+
+You should see the following CLI help:
+{{{
+VMFSTools (C) by fluid Operations (8888 / 8888-12-31_23-59-59)
+http://www.fluidops.com
+
+Arguments:
+  VMFSVolume info
+  VMFSVolume dir path
+  VMFSVolume dirall path
+  VMFSVolume fileinfo path
+  VMFSVolume filecopy path position size
+  VMFSVolume filedump path position size
+VMFSVolume can be any mounted VMFS volume, or a volume reachable by SFTP.
+
+Examples:
+  /path/to/vmfs info
+  \\sambaserver\luns\bigvmfslun dir /Linux_VMs
+  ssh://root:passwd@linuxhost/mnt/vmfslun fileinfo /disks/SwapDisk-flat.vmdk
+}}}
+
+== Command Line Arguments ==
+
+The first argument (VMFSVolume) specifies the location of the VMFS volume.
+
+If the volume is mounted on the local host, this is a path to the device, i.e. /dev/sda5 under Linux or \\.\PhysicalDrive5 under Windows.
+
+The VMFS tools also support remotely mounted volumes on hosts with SSH access. It uses SFTP to access the volumes on these remote hosts. The volume is then specified using an SSH URI like ssh://root:passwd@linuxhost/mnt/vmfslun.
+
+=== info ===
+
+The info command shows general information about the VMFS volume, like the FS label, UUID, creation date, and internal meta data information (FD/PB/SB).
+
+=== dir path or dirall path ===
+
+The dir and dirall commands list the contents of the volume (dirall lists recursively).
+They require a second argument, the path to list from. To list from the root folder, just specify "/".
+
+=== fileinfo file ===
+
+The fileinfo command shows detailed information about a file (or virtual disk) hosted on the VMFS volume.
+
+This includes the file size, and all allocated blocks on the volume (list of allocation extents).
+
+=== filecopy file startpos length ===
+
+The filecopy command copies the file's content, starting at startpos, to stdout.
+Using this command, files can be copied from the VMFS volume to the local file system.
+
+=== filedump file startpos length ===
+
+The filedump command prints the file's content as a hex dump to stdout.
+This is useful for test and debugging purposes.
