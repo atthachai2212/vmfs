@@ -1,13 +1,15 @@
 #summary Overview of the VMFS Driver CLI
 
-== Prerequisites ==
+<wiki:toc />
+
+= Prerequisites =
 
 A Java Virtual Machine of at least version 5 must be installed (version 6 is preferred, as most tests happen on it).
 Please verify that it is correctly installed by executing "java -version" on the command line.
 
 Download the latest fvmfs.jar (or [HowToBuild build your own]) file. If you want to use the remote host features that require SSH/SFTP, you must also download the trilead-ssh library [http://code.google.com/p/vmfs/source/browse/#svn/trunk/lib from the project's lib folder] and put it into the same folder as fvmfs.jar. Otherwise, you will see a NoClassDefFoundError or a similar exception.
 
-== How to run ==
+= How to Run =
 
 To start the VMFS Driver CLI Tools, type
 {{{
@@ -34,7 +36,7 @@ Examples:
   ssh://root:passwd@linuxhost/mnt/vmfslun fileinfo /disks/SwapDisk-flat.vmdk
 }}}
 
-== Command Line Arguments ==
+= Command Line Arguments =
 
 The first argument (VMFSVolume) specifies the location of the VMFS volume.
 
@@ -42,27 +44,27 @@ If the volume is mounted on the local host, this is a path to the device, i.e. /
 
 The VMFS tools also support remotely mounted volumes on hosts with SSH access. It uses SFTP to access the volumes on these remote hosts. The volume is then specified using an SSH URI like ssh://root:passwd@linuxhost/mnt/vmfslun.
 
-=== info ===
+== info ==
 
 The [CLI_info info] command shows general information about the VMFS volume, like the FS label, UUID, creation date, and internal meta data information (FD/PB/SB).
 
-=== dir path or dirall path ===
+== dir path or dirall path ==
 
 The [CLI_dir dir] and [CLI_dirall dirall] commands list the contents of the volume (dirall lists recursively).
 They require a second argument, the path to list from. To list from the root folder, just specify "/".
 
-=== fileinfo file ===
+== fileinfo file ==
 
 The [CLI_fileinfo fileinfo] command shows detailed information about a file (or virtual disk) hosted on the VMFS volume.
 
 This includes the file size, and all allocated blocks on the volume (list of allocation extents).
 
-=== filecopy file startpos length ===
+== filecopy file startpos length ==
 
 The [CLI_filedump filecopy] command copies the file's content, starting at startpos, to stdout.
 Using this command, files can be copied from the VMFS volume to the local file system.
 
-=== filedump file startpos length ===
+== filedump file startpos length ==
 
 The [CLI_filedump filedump] command prints the file's content as a hex dump to stdout.
 This is useful for test and debugging purposes.
