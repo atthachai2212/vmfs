@@ -1,0 +1,20 @@
+#summary Frequently Asked Questions
+
+= What is the VMFS Driver? =
+
+It is the industry's first open solution to access data on VMFS.
+It's an open source driver to access VMFS formatted volumes from any Linux, Windows or OS-X operating system (actually from any OS that is capable of running Java and mounting a volume). 
+
+= Why is it useful? =
+
+Accessing offline (e.g. backed up, unused, legacy) VMFS volumes is not a trivial task. Especially if there are only non-VMware hosts around, there is no open way of accessing the files. But even if VMware hosts are available, one needs to take care of "volume resignaturing" and other challenges.
+
+fluidOps strives for openness and therefore provides this technology as a free solution to make backups and other offline VMFS volumes readable, from any environment.
+
+= This is no "driver". It is just a Java app! =
+
+Right and wrong:
+
+* Right, it is no driver running in kernel space.
+
+* Wrong, because you can easily hook for example WebDAV frontend in front of this VMFS driver lib, and then you can regularly mount the VMFS as a file system under the major operating systems. (Expect a checkin soon that enables this feature...)
