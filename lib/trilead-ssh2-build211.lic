@@ -1,0 +1,6 @@
+Date=2007-01-01
+License_Type=Trilead-SSH BSD Style
+Licensor=Trilead AG
+Description=Trilead SSH implements the SSH-2 protocol in pure Java.
+Library=trilead-ssh2
+Acknowledgements=
