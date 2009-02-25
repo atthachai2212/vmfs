@@ -1,4 +1,4 @@
-= The CLI info command =
+# The CLI info command
 
 The info command opens a VMFS volume and displays the VMFS meta information.
 
