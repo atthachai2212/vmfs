@@ -2,7 +2,7 @@
 
 The filedump command opens a VMFS volume, then opens the specified file on the volume and shows the allocation information (which extents/blocks are used on the disk by the file).
 
-Here is a sample session that gathers the info from a remote host:
+Here is a sample session that gathers the info from a VMFS volume mounted locally at /dev/sda5:
 {{{
 >java -jar fvmfs.jar /dev/sda5 filedump /ExchangeServer/ExchangeServer-flat.vmdk 0 512
 }}}
