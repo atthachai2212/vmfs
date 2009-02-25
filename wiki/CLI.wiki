@@ -3,9 +3,9 @@
 == Prerequisites ==
 
 A Java Virtual Machine of at least version 5 must be installed (version 6 is preferred, as most tests happen on it).
-Please verify that is is correctly installed by executing "java -version" on the command line.
+Please verify that it is correctly installed by executing "java -version" on the command line.
 
-Download the fvmfs.jar (or [HowToBuild build your own]) file. If you want to use the remote host features that require SSH/SFTP, you must also download the trilead-ssh library (go to Source => Browse => trunk/lib) and put it into the same folder as fvmfs.jar. Otherwise, you will see a NoClassDefFoundError or a similar exception.
+Download the latest fvmfs.jar (or [HowToBuild build your own]) file. If you want to use the remote host features that require SSH/SFTP, you must also download the trilead-ssh library [http://code.google.com/p/vmfs/source/browse/#svn/trunk/lib from the project's lib folder] and put it into the same folder as fvmfs.jar. Otherwise, you will see a NoClassDefFoundError or a similar exception.
 
 == How to run ==
 
