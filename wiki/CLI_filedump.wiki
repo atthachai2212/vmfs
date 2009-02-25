@@ -7,7 +7,7 @@ Here is a sample session that gathers the info from a remote host:
 >java -jar fvmfs.jar /dev/sda5 filedump /ExchangeServer/ExchangeServer-flat.vmdk 0 512
 }}}
 
-This command dumps 512 bytes starting at position 0 from the ExchangeServer virtual disk - this is the Master Boot Record (MBR).
+This command dumps 512 bytes starting at position 0 from the virtual disk - this is the Master Boot Record (MBR).
 
 The output is:
 {{{
