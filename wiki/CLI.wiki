@@ -37,25 +37,25 @@ The VMFS tools also support remotely mounted volumes on hosts with SSH access. I
 
 === info ===
 
-The info command shows general information about the VMFS volume, like the FS label, UUID, creation date, and internal meta data information (FD/PB/SB).
+The [CLI-info info] command shows general information about the VMFS volume, like the FS label, UUID, creation date, and internal meta data information (FD/PB/SB).
 
 === dir path or dirall path ===
 
-The dir and dirall commands list the contents of the volume (dirall lists recursively).
+The [CLI-dir dir] and [CLI-dirall dirall] commands list the contents of the volume (dirall lists recursively).
 They require a second argument, the path to list from. To list from the root folder, just specify "/".
 
 === fileinfo file ===
 
-The fileinfo command shows detailed information about a file (or virtual disk) hosted on the VMFS volume.
+The [CLI-fileinfo fileinfo] command shows detailed information about a file (or virtual disk) hosted on the VMFS volume.
 
 This includes the file size, and all allocated blocks on the volume (list of allocation extents).
 
 === filecopy file startpos length ===
 
-The filecopy command copies the file's content, starting at startpos, to stdout.
+The [CLI-filecopy filecopy] command copies the file's content, starting at startpos, to stdout.
 Using this command, files can be copied from the VMFS volume to the local file system.
 
 === filedump file startpos length ===
 
-The filedump command prints the file's content as a hex dump to stdout.
+The [CLI-filedump filedump] command prints the file's content as a hex dump to stdout.
 This is useful for test and debugging purposes.
