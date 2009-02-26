@@ -19,6 +19,8 @@ If you are a file system expert, and you are eager to contribute to a driver tha
 
 That said, the current driver might still have problems with certain VMFS parameters (i.e. certain sizes, certain Unicode characters in names, rare conditions, ...) which we can solve by testing on as many VMFS volumes as possible.
 
+It's easiest to test the driver on a volume that is mounted by a VMware host ([FAQ this is safe]), because then we can immediately compare our output with the actual VMFS info.
+
 Testing the driver code can be made with two easy steps:
 First, run the
 {{{
@@ -34,7 +36,7 @@ This iterates over all directories and lists all files (like a "ls -lR").
 
 = What if I find an error? =
 
-If anything looks wrong with the above command, please run the commands again enabling debug information. Debug logging is enabled by setting the following property
+If you find an issue while testing, please run the commands again enabling debug information. Debug logging is enabled by setting the following property
 {{{
 com.fluidops.util.logging.debug=true
 }}}
