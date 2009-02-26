@@ -164,4 +164,10 @@ public class RemoteSSHIOAccess extends IOAccess
             closeDevice();
         }
     }
+    
+    @Override
+    public String toString()
+    {
+    	return "RemoteSSHIOAccess "+url.getHost()+":"+url.getPath()+" pos="+getPosition()+" size="+getSize();
+    }
 }

@@ -11,6 +11,8 @@ package com.fluidops.tools.vmfs;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
+import com.fluidops.util.logging.Debug;
+
 /**
  * Random IO access backed by random access file.
  * @author Uli
@@ -18,9 +20,12 @@ import java.io.RandomAccessFile;
 public class RandomIOAccess extends IOAccess
 {
     RandomAccessFile raf;
+    String file, mode;
 
     public RandomIOAccess( String file, String mode ) throws IOException
     {
+    	this.file = file;
+    	this.mode = mode;
         raf = new RandomAccessFile( file, mode );
     }
     
@@ -73,7 +78,7 @@ public class RandomIOAccess extends IOAccess
         }
         catch (IOException e)
         {
-            e.printStackTrace();
+            Debug.out.println( "Error getting size: "+ e );
             return -1;
         }
     }
@@ -103,5 +108,11 @@ public class RandomIOAccess extends IOAccess
         {
             e.printStackTrace();
         }        
+    }
+    
+    @Override
+    public String toString()
+    {
+    	return "RandomIOAccess "+file+"("+mode+") pos="+getPosition()+" size="+getSize();
     }
 }
