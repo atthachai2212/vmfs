@@ -11,6 +11,14 @@ Accessing offline (e.g. backed up, unused, legacy) VMFS volumes is not a trivial
 
 fluidOps strives for openness and therefore provides this technology as a free solution to make backups and other offline VMFS volumes readable, from any environment.
 
+= Do you have the VMFS specification? =
+
+No. The driver is the result of extensively analyzing the on-disk format, and comparing changes after certain file system operations. This is an ongoing process, and there are still many unknown parts.
+
+= How can I help? =
+
+In many ways, please [HowCanIHelp have a look here].
+
 = This is no "driver". It is just a Java app! =
 
 Right and wrong:
