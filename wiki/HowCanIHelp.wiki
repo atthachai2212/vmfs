@@ -8,7 +8,7 @@ But since this file system driver is the result of extensive on-disk format anal
 
 = Help by analyzing and adding more support =
 
-If you are a file system expert, and you are eager to contribute to a driver that is the de facto standard in virtualization hosting, please go ahead - we have a couple of unsupported features regarding VMFS:
+If you are a file system expert, and you are eager to contribute to a driver for a FS that is the de facto standard in virtualization hosting, please go ahead - we have a couple of unsupported features regarding VMFS:
 
   * Extents are not supported
   * Creating and deleting files or folders is not supported
