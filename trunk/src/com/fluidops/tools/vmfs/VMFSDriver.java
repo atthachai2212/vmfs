@@ -757,6 +757,8 @@ public class VMFSDriver
      */
     void openVmfs() throws Exception
     {
+    	Debug.out.println( "Opening VMFS on IOAccess="+rf );
+    	
         // Read the basic VMFS meta data
         readVmfsInfo();
 
@@ -777,7 +779,9 @@ public class VMFSDriver
             if ( !frs.isEmpty() && !fmis.isEmpty() ) break;
         }
         catch (Exception ex)
-        {}
+        {
+        	Debug.out.println( "Ignored error: " + ex );
+        }
         ofs += 0x100000;
         if ( ofs>=0x1000000 )
             throw new IOException("VMFS FDC base not found");
@@ -1084,7 +1088,7 @@ public class VMFSDriver
         FileMetaInfo res = new FileMetaInfo();
         
         Debug.out.println("@"+Long.toHexString(pos));
-        if ( pos+0x800 > io.getSize() )
+        if ( (io.getSize() > 0) && (pos+0x800 > io.getSize()) )
         {
             throw new IOException("File meta info after EOF @Pos="+pos+" : "+io);
         }
