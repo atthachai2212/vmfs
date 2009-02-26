@@ -13,7 +13,7 @@ fluidOps strives for openness and therefore provides this technology as a free s
 
 = Do you have the VMFS specification? =
 
-No. The driver is the result of extensively analyzing the on-disk format, and comparing changes after certain file system operations. This is an ongoing process, and there are still many unknown parts.
+No. The driver is the result of extensively analyzing the on-disk format, and comparing changes after certain file system operations. [HowCanIHelp This is an ongoing process.]
 
 = Is it safe to access an already mounted VMFS volume? =
 
