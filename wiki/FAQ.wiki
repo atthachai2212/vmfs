@@ -15,9 +15,13 @@ fluidOps strives for openness and therefore provides this technology as a free s
 
 No. The driver is the result of extensively analyzing the on-disk format, and comparing changes after certain file system operations. This is an ongoing process, and there are still many unknown parts.
 
+= Do you plan to add write support? =
+
+Writing into existing files (i.e. virtual disks) is easy and will be included soon. Creating files and folders, or changing file allocation, is hard, and requires [HowCanIHelp a lot more work to be done.]
+
 = How can I help? =
 
-In many ways, please [HowCanIHelp have a look here].
+You can contribute in many ways, please [HowCanIHelp have a look here.]
 
 = This is no "driver". It is just a Java app! =
 
