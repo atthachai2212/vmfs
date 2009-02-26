@@ -53,7 +53,9 @@
 	</target>
 
 	<target name="compile">
-		<javac srcdir="${root}/src" destdir="${root}/bin" classpathref="base.classpath" debug="on" optimize="on" fork="false" verbose="false" listfiles="false" includes="**/*.java">
+		<javac srcdir="${root}/src" destdir="${root}/bin" classpathref="base.classpath" 
+			debug="on" optimize="on" fork="false" verbose="false" listfiles="false" 
+			target = "1.5" includes="**/*.java">
 			<compilerarg value="-Xlint" />
 		</javac>
 	</target>
@@ -68,7 +70,7 @@
             version="true" 
             use="true" 
             public="true" 
-            source="1.6" 
+            source="1.5" 
 	        serialwarn="true"
             stylesheetfile="${root}/build/doc/stylesheet_fbase.css"
             linksource="true"
