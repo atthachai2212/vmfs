@@ -15,6 +15,10 @@ fluidOps strives for openness and therefore provides this technology as a free s
 
 No. The driver is the result of extensively analyzing the on-disk format, and comparing changes after certain file system operations. This is an ongoing process, and there are still many unknown parts.
 
+= Is it safe to access an already mounted VMFS volume? =
+
+Absolutely. Since we are only reading from the volume, there is no risk of interfering or data loss. Accessing a volume that is mounted on a VMware host is an easy way of [HowCanIHelp verifying the driver code.]
+
 = Do you plan to add write support? =
 
 Writing into existing files (i.e. virtual disks) is easy and will be included soon. Creating files and folders, or changing file allocation, is hard, and requires [HowCanIHelp a lot more work to be done.]
