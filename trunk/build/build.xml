@@ -33,7 +33,7 @@
 	</target>
 
 	<target name="jar">
-		<jar destfile="${root}/deploy/fvmfs.jar" duplicate="fail" compress="true">
+		<jar destfile="${root}/deploy/fvmfs_${build.version}.jar" duplicate="fail" compress="true">
 			<fileset dir="${root}/bin" includes="**/*.class" />
 			<manifest>
 				<attribute name="Main-Class" value="com.fluidops.tools.vmfs.VMFSTools" />
