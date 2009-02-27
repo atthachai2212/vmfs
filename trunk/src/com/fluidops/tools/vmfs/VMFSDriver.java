@@ -780,7 +780,11 @@ public class VMFSDriver
         }
         catch (Exception ex)
         {
-        	Debug.out.println( "Ignored error: " + ex );
+        	if ( Debug.debug )
+        	{
+            	Debug.out.println( "Ignored error: " + ex );
+        		ex.printStackTrace();
+        	}
         }
         ofs += 0x100000;
         if ( ofs>=0x1000000 )
