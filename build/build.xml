@@ -33,7 +33,7 @@
 	</target>
 
 	<target name="jar">
-		<jar destfile="${root}/deploy/fvmfs_${env.SVN_REVISION}.jar" duplicate="fail" compress="true">
+		<jar destfile="${root}/deploy/fvmfs_r${env.SVN_REVISION}.jar" duplicate="fail" compress="true">
 			<fileset dir="${root}/bin" includes="**/*.class" />
 			<manifest>
 				<attribute name="Main-Class" value="com.fluidops.tools.vmfs.VMFSTools" />
@@ -43,11 +43,11 @@
 				<attribute name="version" value="${build.version}" />
 				<attribute name="date" value="${build.date}" />
 				<attribute name="build" value="${build.number}" />
+				<attribute name="revision" value="${env.SVN_REVISION}" />				
 				<attribute name="ProductName" value="fluidOps VMFS" />
 				<attribute name="ProductLongName" value="fluidOps VMFS Driver and Tools" />
 				<attribute name="CompanyName" value="fluid Operations GmbH" />
 				<attribute name="ProductVersion" value="${build.version}" />
-				<attribute name="ProductRevision" value="${env.SVN_REVISION}" />				
 				<attribute name="ProductContact" value="info@fluidops.com" />
 			</manifest>
 		</jar>
