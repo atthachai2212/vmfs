@@ -17,5 +17,3 @@ Extent[3] = @5781110000(375827529728) size=350400000(14231273472)
 }}}
 
 This means that this virtual disk file, which is 15 Gigabytes in size, is made up of four extents on the disk. The extent location is given in bytes from the start of the volume, and the volume size is also given in bytes. These are hexadecimal numbers, decimal numbers are in brackets.
-
-This works for me!
