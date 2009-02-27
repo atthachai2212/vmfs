@@ -136,7 +136,7 @@ public class VMFSTools
 
     void cli( String[] args) throws Throwable
     {
-        System.out.println("VMFSTools (C) by fluid Operations ("+Version.getVersion()+" "+Version.getRevision()+" / " +Version.getBuildDate() + ")");
+        System.out.println("VMFSTools (C) by fluid Operations (v"+Version.getVersion()+" r"+Version.getRevision()+" / " +Version.getBuildDate() + ")");
         System.out.println("http://www.fluidops.com");
         System.out.println();
         if ( args.length<2 )
