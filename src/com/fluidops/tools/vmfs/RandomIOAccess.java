@@ -46,7 +46,50 @@ public class RandomIOAccess extends IOAccess
     @Override
     public int read(byte[] buffer, int offset, int size) throws IOException
     {
-        return raf.read(buffer, offset, size);
+    	Debug.out.println( "reading at "+ Long.toHexString(raf.getFilePointer())+" amount="+size);
+
+    	long pos = raf.getFilePointer();
+    	int ALIGN = 512;
+    	int smod = (int)(pos%ALIGN), emod=(int)((pos+size)%ALIGN);
+    	
+    	if ( smod!=0 || emod!=0 )
+    	{
+    		// Unaligned access to the device, now align the access
+    		long tpos = pos;
+    		int tsize = size;
+    		if ( smod!=0 )
+    		{
+    			tpos -= smod;
+    			tsize += smod;
+    		}
+    		if ( emod!=0 )
+    		{
+    			tsize += ALIGN-emod;
+    		}
+
+    		// Create a temp buffer for the aligned access
+    		byte[] tbuffer = new byte[ tsize ];
+    		raf.seek( tpos );
+        	Debug.out.println( "aligned reading at "+ Long.toHexString(raf.getFilePointer())+" amount="+tsize);
+    		int tres = raf.read( tbuffer, 0, tsize );
+            Debug.out.println( "aligned reading res="+tres );    		
+
+            // Adjust the result
+    		tres -= smod;
+    		if ( tres<0 ) tres = 0;
+    		if ( tres>size ) tres = size;
+            Debug.out.println("reading res="+tres);    		
+    		raf.seek( pos + tres );
+    		
+    		// Copy the resulting data into the buffer
+    		System.arraycopy(tbuffer, smod, buffer, offset, tres);
+    		return tres;
+    	}
+
+    	// Regular access, just read
+        int res = raf.read(buffer, offset, size);
+        Debug.out.println("reading res="+res);
+        return res;
     }
 
     @Override
