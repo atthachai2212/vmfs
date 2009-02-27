@@ -8,10 +8,14 @@
  */
 package com.fluidops.tools.vmfs;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import com.fluidops.util.HexDump;
+import java.util.StringTokenizer;
+
+import com.fluidops.util.logging.Debug;
 import com.trilead.ssh2.*;
 
 /**
@@ -26,8 +30,12 @@ public class RemoteSSHIOAccess extends IOAccess
     int port;
     Connection c;
     ConnectionInfo ci;
+    
     SFTPv3Client sftp;
     SFTPv3FileHandle deviceHandle;
+    
+    Session s;
+    
     long pos;
     long size;
     
@@ -72,14 +80,59 @@ public class RemoteSSHIOAccess extends IOAccess
         c = new Connection( host, port );
         ci = c.connect();
         c.authenticateWithPassword(user, passwd);
-        sftp = new SFTPv3Client( c );
-        
-        openDevice();
-        SFTPv3FileAttributes attr = sftp.fstat( deviceHandle );
-        closeDevice();
-        size = attr.size;
+        try
+        {
+        	sftp = new SFTPv3Client( c );
+            openDevice();
+            SFTPv3FileAttributes attr = sftp.fstat( deviceHandle );
+            closeDevice();
+            size = attr.size;
+        }
+        catch (IOException ex)
+        {
+        	System.out.println("SFTP failed, fallback to SSH");
+        	// Fall back to SSH only
+        	sftp = null;
+        	
+            s = c.openSession();
+            s.execCommand("stat -t \""+path+"\"");
+            String res = readUrl( s.getStdout() );
+            String err = readUrl( s.getStderr() );
+            if ( err!=null && err.length()>0 )
+                throw new IOException( err );
+            
+            StringTokenizer st = new StringTokenizer(res, " ");
+            /* String statPath = */ st.nextToken();
+            size = Long.parseLong( st.nextToken() );        	
+        }        
     }
 
+	/**
+	 * read URL into string
+	 */
+    public static ByteArrayOutputStream readUrlToBuffer( InputStream in ) throws IOException
+    {
+        byte[] buffer = new byte[8192];
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        for (;;)
+        {
+            int len = in.read( buffer );
+            if ( len == -1 )
+                break;
+            out.write( buffer, 0, len );
+        }
+        in.close();
+        return out;
+    }
+    
+    /**
+     * read URL into string
+     */
+    public static String readUrl( InputStream in ) throws IOException
+    {
+        return readUrlToBuffer( in ).toString();
+    }
+    
     void openDevice() throws IOException
     {
         deviceHandle = rw ? sftp.openFileRW( path ) : sftp.openFileRO( path );
@@ -104,8 +157,14 @@ public class RemoteSSHIOAccess extends IOAccess
     @Override
     public void close()
     {
-        closeDevice();
-        sftp.close();
+        if ( sftp!=null )
+        {
+            closeDevice();
+        	sftp.close();
+        }
+        if ( s!=null )
+        	s.close();
+
         c.close();
     }
 
@@ -125,16 +184,33 @@ public class RemoteSSHIOAccess extends IOAccess
     public synchronized int read(byte[] buffer, int offset, int size) throws IOException
     {
         if ( size==0 ) return 0;
-        openDevice();
-        try
+        if ( sftp!=null )
         {
-            int res = sftp.read( deviceHandle, pos, buffer, offset, size);
-            pos += res;
-            return res;
+        	// We have SFTP
+            openDevice();
+            try
+            {
+                int res = sftp.read( deviceHandle, pos, buffer, offset, size);
+                pos += res;
+                return res;
+            }
+            finally
+            {
+                closeDevice();
+            }
         }
-        finally
+        else
         {
-            closeDevice();
+        	// SSH fallback
+            Session s = c.openSession();
+            String ddCmd = "dd if=\""+path+"\" bs=1 skip="+pos+" count="+size;        
+            s.execCommand( ddCmd );
+            byte[] output = readUrlToBuffer( s.getStdout() ).toByteArray();
+            Debug.out.println("SSH: read "+output.length+" @"+Long.toHexString(pos));
+            System.arraycopy( output, 0, buffer, offset, output.length );
+            pos += output.length;
+            s.close();
+            return output.length;
         }
     }
 
@@ -168,6 +244,6 @@ public class RemoteSSHIOAccess extends IOAccess
     @Override
     public String toString()
     {
-    	return "RemoteSSHIOAccess "+url.getHost()+":"+url.getPath()+" pos="+getPosition()+" size="+getSize();
+    	return "RemoteSSHIOAccess "+url.getHost()+":"+url.getPath()+" pos="+getPosition()+" size="+getSize()+" SFTP="+(sftp!=null);
     }
 }
