@@ -139,6 +139,6 @@
 		<echo message="Generating Date ${build.date}" />
 	</target>
 
-	<target name="auto" depends="autoprops, clean, compile, jar, javadoc" />
+	<target name="auto" depends="autoprops, clean, compile, jar" />
 	<target name="manual" depends="manualprops, clean, compile, jar, javadoc" />
 </project>
