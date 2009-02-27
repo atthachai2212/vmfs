@@ -102,7 +102,7 @@
         <junit printsummary="yes">
             <classpath refid="test.classpath" />
             <formatter type="xml" />
-            <test outfile="junit-tests/fbase" haltonfailure="yes" haltonerror="yes" name="com.fluidops.BaseTests"/>
+            <test outfile="junit-tests/fvmfs" haltonfailure="yes" haltonerror="yes" name="com.fluidops.BaseTests"/>
         </junit>
     </target>
             	
@@ -139,6 +139,6 @@
 		<echo message="Generating Date ${build.date}" />
 	</target>
 
-	<target name="auto" depends="autoprops, clean, compile, junit, jar, javadoc" />
+	<target name="auto" depends="autoprops, clean, compile, jar, javadoc" />
 	<target name="manual" depends="manualprops, clean, compile, jar, javadoc" />
 </project>
