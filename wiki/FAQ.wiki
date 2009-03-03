@@ -3,7 +3,7 @@
 = What is the VMFS Driver? =
 
 It is the industry's first open solution to access data on VMFS.
-It's an open source driver to access VMFS formatted volumes from any Linux, Windows or OS-X operating system (actually from any OS that is capable of running Java and mounting a volume). 
+It's an open source driver to access VMFS formatted volumes from any Linux, Windows or OS-X operating system (actually from any OS that is capable of running Java and mounting a volume). It currently supports VMFS version 3 (VMFS3), version 1 and version 2 are not supported.
 
 = Why is it useful? =
 
