@@ -18,7 +18,7 @@ java -jar fvmfs.jar
 
 You should see the following CLI help:
 {{{
-VMFSTools (C) by fluid Operations (8888 / 8888-12-31_23-59-59)
+VMFSTools (C) by fluid Operations (v0.9.8.13 r66 / 2009-03-05_22-18-06)
 http://www.fluidops.com
 
 Arguments:
@@ -26,8 +26,10 @@ Arguments:
   VMFSVolume dir path
   VMFSVolume dirall path
   VMFSVolume fileinfo path
-  VMFSVolume filecopy path position size
+  VMFSVolume filecopy path [newname position size]
   VMFSVolume filedump path position size
+  VMFSVolume webdav [host port]
+
 VMFSVolume can be any mounted VMFS volume, or a volume reachable by SFTP.
 
 Examples:
@@ -63,12 +65,16 @@ The [CLI_fileinfo fileinfo] command shows detailed information about a file (or 
 
 This includes the file size, and all allocated blocks on the volume (list of allocation extents).
 
-== filecopy file startpos length ==
+== filecopy path [newname position size] ==
 
-The [CLI_filedump filecopy] command copies the file's content, starting at startpos, to stdout.
+The [CLI_filedump filecopy] command copies the file's content, starting at position, into a file called newname.
 Using this command, files can be copied from the VMFS volume to the local file system.
 
-== filedump file startpos length ==
+== filedump path position size ==
 
 The [CLI_filedump filedump] command prints the file's content as a hex dump to stdout.
 This is useful for test and debugging purposes.
+
+== webdav [host port] ==
+
+The [CLI_webdav webdav] command starts a WebDAV/HTTP server (defaults to port 50080 on localhost).
