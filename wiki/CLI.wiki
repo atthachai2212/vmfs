@@ -65,7 +65,7 @@ The [CLI_fileinfo fileinfo] command shows detailed information about a file (or 
 
 This includes the file size, and all allocated blocks on the volume (list of allocation extents).
 
-== filecopy path [newname position size] ==
+== filecopy path (newname position size) ==
 
 The [CLI_filedump filecopy] command copies the file's content, starting at position, into a file called newname.
 Using this command, files can be copied from the VMFS volume to the local file system.
@@ -75,6 +75,6 @@ Using this command, files can be copied from the VMFS volume to the local file s
 The [CLI_filedump filedump] command prints the file's content as a hex dump to stdout.
 This is useful for test and debugging purposes.
 
-== webdav [host port] ==
+== webdav (host port) ==
 
 The [CLI_webdav webdav] command starts a WebDAV/HTTP server (defaults to port 50080 on localhost).
