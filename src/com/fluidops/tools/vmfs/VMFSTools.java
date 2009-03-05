@@ -8,16 +8,16 @@
  */
 package com.fluidops.tools.vmfs;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.fluidops.base.Version;
-import com.fluidops.tools.vmfs.VMFSDriver.FSInfo;
 import com.fluidops.tools.vmfs.VMFSDriver.FileMetaInfo;
 import com.fluidops.util.HexDump;
 import com.fluidops.util.StringUtil;
-import com.fluidops.util.logging.Debug;
 
 /**
  * VMFS CLI tools.
@@ -146,8 +146,9 @@ public class VMFSTools
             System.out.println("  VMFSVolume dir path");
             System.out.println("  VMFSVolume dirall path");
             System.out.println("  VMFSVolume fileinfo path");
-            System.out.println("  VMFSVolume filecopy path position size");
+            System.out.println("  VMFSVolume filecopy path [newname position size]");
             System.out.println("  VMFSVolume filedump path position size");
+            System.out.println("  VMFSVolume webdav [host port]");
             System.out.println();
             System.out.println("VMFSVolume can be any mounted VMFS volume, or a volume reachable by SFTP.");
             System.out.println("Examples:");
@@ -195,29 +196,48 @@ public class VMFSTools
             int sz = Integer.parseInt(args[4]);
             showFileDump(file, pos, sz);
         }
+        else if ( "filecopy".equals(cmd) )
+        {
+            String file = args[2];
+            String localname = args.length>3 ? args[3] : null;
+            long pos = args.length>4 ? Long.valueOf(args[4]) : 0;
+            int sz = args.length>5 ? Integer.parseInt(args[5]) : 0;
+            doFileCopy(file, pos, sz, localname);
+        }
+        else if ( "webdav".equals(cmd) )
+        {
+        	String bind = args.length>2 ? args[2] : "localhost";
+        	int port = args.length>3 ? Integer.parseInt(args[3]) : 50080;
+        	runWebDAVServer( bind, port );
+        }
         vi.closeVolume();        
+    }
+
+    static void showVMFSInfo( java.io.PrintStream out, VMFSDriver vi ) throws Exception
+    {
+        VMFSDriver.VolumeInfo volInfo = vi.vi;
+        VMFSDriver.VMFSSuperBlock superBlock = vi.sb;
+        VMFSDriver.FSInfo fs = vi.fs;
+        
+        out.println("VMFS label         = "+fs.label__128);
+        out.println("VMFS creation date = "+new java.util.Date(1000L*fs.timestamp) );
+        out.println("VMFS capacity      = "+ StringUtil.displaySizeInBytes((long)vi.fbbBmp.bmp.itemCount*vi.blockSize) );
+        out.println("VMFS UUID          = "+fs.uuid);
+        out.println("VMFS block size    = "+StringUtil.displaySizeInBytes(fs.blocksize__0xa1));
+        out.println("VMFS version       = 3."+fs.version);
+        out.println("VMFS # of FD/PB/SB = "+vi.fdcBmp.bmp.itemCount+" / "+vi.pbcBmp.bmp.itemCount+" / "+vi.sbcBmp.bmp.itemCount);
+
+        out.println("VMFS volume type   = "+ volInfo.name__28_0x12 );
+        out.println("VMFS volume UUID   = "+ volInfo.uuid__0x82);
+        out.println("VMFS volume size   = "+ StringUtil.displaySizeInBytes(superBlock.size) );
+        out.println("VMFS volume ver    = "+fs.volumeVersion); // 3, 4 or 5        
     }
 
     void showVMFSInfo() throws Exception
     {
-        VMFSDriver.VolumeInfo volInfo = this.vi.vi;
-        VMFSDriver.VMFSSuperBlock superBlock = this.vi.sb;
-        VMFSDriver.FSInfo fs = this.vi.fs;
-        
-        System.out.println("VMFS label         = "+fs.label__128);
-        System.out.println("VMFS creation date = "+new java.util.Date(1000L*fs.timestamp) );
-        System.out.println("VMFS capacity      = "+ StringUtil.displaySizeInBytes((long)this.vi.fbbBmp.bmp.itemCount*this.vi.blockSize) );
-        System.out.println("VMFS UUID          = "+fs.uuid);
-        System.out.println("VMFS block size    = "+StringUtil.displaySizeInBytes(fs.blocksize__0xa1));
-        System.out.println("VMFS version       = 3."+fs.version);
-        System.out.println("VMFS # of FD/PB/SB = "+vi.fdcBmp.bmp.itemCount+" / "+vi.pbcBmp.bmp.itemCount+" / "+vi.sbcBmp.bmp.itemCount);
-
-        System.out.println("VMFS volume type   = "+ volInfo.name__28_0x12 );
-        System.out.println("VMFS volume UUID   = "+ volInfo.uuid__0x82);
-        System.out.println("VMFS volume size   = "+ StringUtil.displaySizeInBytes(superBlock.size) );
-        System.out.println("VMFS volume ver    = "+fs.volumeVersion); // 3, 4 or 5        
+    	showVMFSInfo( System.out, vi );
     }
-    
+
     void showFileDump(String file, long pos, int sz) throws Exception
     {
         IOAccess io = vi.openFile( file );
@@ -225,6 +245,45 @@ public class VMFSTools
                 + StringUtil.displaySizeInBytes(io.getSize()));
         
         HexDump.dump( io.read(pos, sz) );
+        io.close();
+    }
+
+    void doFileCopy(String file, long pos, long sz, String localfile) throws Exception
+    {
+        IOAccess io = vi.openFile( file );
+        long size = io.getSize();
+        System.out.println("Size = "
+                + StringUtil.displaySizeInBytes(size) );
+
+        if ( localfile==null )
+        	localfile = new File(file).getName();
+        
+        io.setPosition(pos);
+        if ( sz==0 )
+        	sz = size;
+        
+        FileOutputStream out = new FileOutputStream( localfile );
+        
+        long todo = sz;
+        int CHUNK = 16384;
+        byte[] buffer = new byte[CHUNK];
+        long t0 = System.currentTimeMillis();
+        while ( todo>0 )
+        {
+        	int now = todo>CHUNK ? CHUNK : (int)todo;
+        	int res = io.read( buffer, 0, now );
+        	out.write( buffer, 0, res );
+        	todo -= res;
+        	
+        	if ( System.currentTimeMillis()-t0 > 2500 )
+        	{
+        		t0 = System.currentTimeMillis();
+        		
+        		System.out.println("Copying file -- bytes left="+todo);
+        	}
+        }
+        
+        out.close();
         io.close();
     }
 
@@ -279,6 +338,11 @@ public class VMFSTools
                     + ")");
         }
         io.close();
+    }
+    
+    void runWebDAVServer( String host, int port ) throws Exception
+    {
+    	VMFSWebDAV.runWebDAVServer( vi, host, port );
     }
     
     /**
