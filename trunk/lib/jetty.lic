@@ -1,0 +1,6 @@
+Date=1995-2009
+License_Type=Apache Software License 2.0
+Licensor=Mort Bay Consulting
+Description=Jetty web server, http://www.mortbay.org
+Library=jetty
+Acknowledgements=various other (CDDLv1.0)

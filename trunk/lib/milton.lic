@@ -1,0 +1,6 @@
+Date=2009
+License_Type=Apache Software License 2.0
+Licensor=Brad McEvoy, http://www.bradmcevoy.com
+Description=Milton WebDAV API, http://milton.ettrema.com/license.html
+Library=milton
+Acknowledgements=various other (CDDLv1.0)
