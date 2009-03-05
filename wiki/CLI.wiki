@@ -70,7 +70,7 @@ This includes the file size, and all allocated blocks on the volume (list of all
 
 == filecopy path (newname position size) ==
 
-The [CLI_filedump filecopy] command copies the file's content, starting at position, into a file called newname.
+The [CLI_filecopy filecopy] command copies the file's content, starting at position, into a file called newname.
 Using this command, files can be copied from the VMFS volume to the local file system.
 
 == filedump path position size ==
