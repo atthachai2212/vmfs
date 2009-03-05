@@ -33,11 +33,20 @@
 	</target>
 
 	<target name="jar">
+	
+	    <fileset dir="${root}/lib" id="lib.files">
+    	  <include name="**/*.jar"/>
+    	</fileset>
+  
+    	<pathconvert pathsep=" " property="manifest.classpath" refid="lib.files">
+    		<map from="${root}/lib/" to=""/>
+    	</pathconvert>
+	
 		<jar destfile="${root}/deploy/fvmfs_r${env.SVN_REVISION}.jar" duplicate="fail" compress="true">
 			<fileset dir="${root}/bin" includes="**/*.class" />
 			<manifest>
 				<attribute name="Main-Class" value="com.fluidops.tools.vmfs.VMFSTools" />
-				<attribute name="Class-Path" value="trilead-ssh2-build211.jar" />
+				<attribute name="Class-Path" value="${manifest.classpath}" />
 				<attribute name="built-by" value="fluid Operations GmbH" />
 				<attribute name="project" value="${module}" />
 				<attribute name="version" value="${build.version}" />
@@ -51,6 +60,14 @@
 				<attribute name="ProductContact" value="info@fluidops.com" />
 			</manifest>
 		</jar>
+	</target>
+	
+	<target name="dist">
+		<copy todir="${root}/deploy" overwrite="true">
+            <fileset dir="${root}/lib/">
+                <include name="**/*.jar" />
+            </fileset>
+		</copy>
 	</target>
 
 	<target name="compile">
@@ -140,6 +157,6 @@
 		<echo message="Generating Date ${build.date}" />
 	</target>
 
-	<target name="auto" depends="autoprops, clean, compile, jar" />
-	<target name="manual" depends="manualprops, clean, compile, jar, javadoc" />
+	<target name="auto" depends="autoprops, clean, compile, jar, dist" />
+	<target name="manual" depends="manualprops, compile, jar, dist" />
 </project>
