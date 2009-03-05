@@ -1,0 +1,33 @@
+#summary The CLI webdav command
+
+The webdav command opens a VMFS volume, and serves the contents of the file system as WebDAV/HTTP. The volume can be directly mounted in most operating systems.
+
+The WebDAV server binds on localhost (127.0.0.1) and port 50080 by default. This can be changed by optionally specifying the host IP and port to bind to.
+
+== Starting the WebDAV server ==
+
+The following command starts a WebDAV server for the VMFS volume on /dev/sda5:
+{{{
+>java -jar fvmfs.jar /dev/sda5 webdav
+
+VMFSTools (C) by fluid Operations (v0.9.8.13 r66 / 2009-03-05_22-18-06)
+http://www.fluidops.com
+
+*** Serving WebDAV/HTTP at http://localhost:50080/vmfs
+}}}
+
+By pointing your Web browser to the URL, you can now browse the VMFS file system.
+
+== Mounting the volume ==
+
+Under Windows, this volume can now be mounted as a drive letter as follows:
+
+{{{
+> net use * http://localhost:50080/vmfs
+
+Drive Z: is now connected to http://localhost:50080/vmfs.
+
+The command completed successfully.
+}}}
+
+The VMFS volume is now visible under drive Z. Executing a dir Z:\ shows the root directory. Under Windows Vista and XP SP3, this should work out of the box.
