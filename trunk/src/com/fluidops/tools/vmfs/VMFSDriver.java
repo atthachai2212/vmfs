@@ -591,13 +591,24 @@ public class VMFSDriver
     
     FileRecord getFileRecord( String path ) throws Exception
     {
+    	return _getFileRecord( path, true );
+    }
+    
+    FileRecord getFileOrFolderRecord( String path ) throws Exception
+    {
+    	return _getFileRecord( path, false );    	
+    }
+    
+    FileRecord _getFileRecord( String path, boolean onlyFiles ) throws Exception
+    {
         List<FileRecord> rs = frs;
         StringTokenizer st = new StringTokenizer( path, "/" );
+        FileRecord fr = null;
         while ( st.hasMoreTokens() )
         {
             String token = st.nextToken();
             
-            FileRecord fr = getFileRecord( rs, token );
+            fr = getFileRecord( rs, token );
             if ( fr==null )
                 return null;
 
@@ -613,7 +624,10 @@ public class VMFSDriver
                 return fr;
             }
         }
-        throw new IOException("File not found: "+path);
+        if ( onlyFiles )
+        	throw new IOException("File not found: "+path);
+        else
+        	return fr;
     }
 
     Map<FileRecord, List<FileRecord> > dirCache = new HashMap<FileRecord, List<FileRecord> >();
@@ -699,7 +713,7 @@ public class VMFSDriver
         FileRecord fr;
         try
         {
-            fr = getFileRecord( fileName );
+            fr = getFileOrFolderRecord( fileName );
             return getMetaInfo( fr );
         }
         catch (Exception e)
