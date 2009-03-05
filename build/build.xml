@@ -39,10 +39,10 @@
     	</fileset>
   
     	<pathconvert pathsep=" " property="manifest.classpath" refid="lib.files">
-    		<map from="${root}/lib/" to=""/>
+    		<map from="${root}/lib/" to="lib/"/>
     	</pathconvert>
 	
-		<jar destfile="${root}/deploy/fvmfs_r${env.SVN_REVISION}.jar" duplicate="fail" compress="true">
+		<jar destfile="${root}/deploy/fvmfs.jar" duplicate="fail" compress="true">
 			<fileset dir="${root}/bin" includes="**/*.class" />
 			<manifest>
 				<attribute name="Main-Class" value="com.fluidops.tools.vmfs.VMFSTools" />
@@ -63,11 +63,15 @@
 	</target>
 	
 	<target name="dist">
-		<copy todir="${root}/deploy" overwrite="true">
+		<copy todir="${root}/deploy/lib" overwrite="true">
             <fileset dir="${root}/lib/">
                 <include name="**/*.jar" />
             </fileset>
 		</copy>
+		
+		<zip destfile="${root}/deploy/fvmfs_r${env.SVN_REVISION}_dist.zip">
+			<zipfileset dir="${root}/deploy" includes="**/*.jar" prefix="vmfs_r${env.SVN_REVISION}"/>
+    	</zip>
 	</target>
 
 	<target name="compile">
