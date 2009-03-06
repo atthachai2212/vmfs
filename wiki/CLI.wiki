@@ -81,3 +81,5 @@ This is useful for test and debugging purposes.
 == webdav (host port) ==
 
 The [CLI_webdav webdav] command starts a WebDAV/HTTP server (defaults to port 50080 on localhost).
+
+The VMFS volume can then be browsed using any HTTP browser, or it can be mounted as a file system on many operating systems.
