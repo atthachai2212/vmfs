@@ -43,11 +43,11 @@ Examples:
 
 = Command Line Arguments =
 
-The first argument (VMFSVolume) specifies the location of the VMFS volume.
+The first argument (VMFSVolume) always specifies the location of the VMFS volume. The second argument is the command. Arguments in brackets are optional.
 
 If the volume is mounted on the local host, this is a path to the device, i.e. /dev/sda5 under Linux or \\.\PhysicalDrive5 under Windows.
 
-The VMFS tools also support remotely mounted volumes on hosts with SSH access. It uses SFTP to access the volumes on these remote hosts. The volume is then specified using an SSH URI like
+The VMFS tools also support remotely mounted volumes on hosts with SSH access. It uses SFTP, or an SSH compatible mode if SFTP is not supported, to access the volumes on these remote hosts. The volume is then specified using an SSH URI like
 {{{
 ssh://user:passwd@linuxhost/mnt/vmfslun
 }}}
