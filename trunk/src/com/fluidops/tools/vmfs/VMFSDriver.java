@@ -659,7 +659,7 @@ public class VMFSDriver
      * @return The list of file records in the given directory
      * @throws Exception
      */
-    List<FileMetaInfo> dir( String path ) throws Exception
+    public List<FileMetaInfo> dir( String path ) throws Exception
     {
         List<FileMetaInfo> fmis = new ArrayList<FileMetaInfo>();
         List<FileRecord> frs = _dir( path );
@@ -708,7 +708,7 @@ public class VMFSDriver
      * @param fileName
      * @return Null if not found
      */
-    FileMetaInfo getMetaInfoForFile( String fileName )
+    public FileMetaInfo getMetaInfoForFile( String fileName )
     {
         FileRecord fr;
         try
@@ -769,7 +769,7 @@ public class VMFSDriver
      * Opens the VMFS
      * @throws Exception
      */
-    void openVmfs() throws Exception
+    public void openVmfs() throws Exception
     {
     	Debug.out.println( "Opening VMFS on IOAccess="+rf );
     	
@@ -932,7 +932,7 @@ public class VMFSDriver
      * @return IOAccess handle of the file
      * @throws IOException
      */
-    IOAccess openFile( String name ) throws IOException
+    public IOAccess openFile( String name ) throws IOException
     {
         FileMetaInfo fmi = getMetaInfoForFile( name );
         if ( fmi==null )
@@ -1028,15 +1028,15 @@ public class VMFSDriver
      * Class that holds the file meta structs. 
      * @author Uli
      */
-    class FileMetaInfo
+    public class FileMetaInfo
     {
-        FileRecord fr;
-        FileMetaHeader fmh;
-        FileMetaRecord fmr;
-        RDMMetaRecord rdm;
-        int[] blockTab;
-        boolean resolvedPointers;
-        String fullPath="?";
+        public FileRecord fr;
+        public FileMetaHeader fmh;
+        public FileMetaRecord fmr;
+        public RDMMetaRecord rdm;
+        public int[] blockTab;
+        public boolean resolvedPointers;
+        public String fullPath="?";
         
         /**
          * Checks if this file meta data has pointer blocks,
@@ -1209,7 +1209,7 @@ public class VMFSDriver
      * Closes the volume.
      * @throws IOException
      */
-    void closeVolume() throws IOException
+    public void closeVolume() throws IOException
     {
         if ( rf!=null ) rf.close();
     }
@@ -1220,7 +1220,7 @@ public class VMFSDriver
      * @throws IOException
      * @throws URISyntaxException 
      */
-    void openVolume( String file ) throws IOException, URISyntaxException
+    public void openVolume( String file ) throws IOException, URISyntaxException
     {
         closeVolume();
         
