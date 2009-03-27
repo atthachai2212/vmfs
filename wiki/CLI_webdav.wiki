@@ -30,7 +30,7 @@ Drive Z: is now connected to http://localhost:50080/vmfs.
 The command completed successfully.
 }}}
 
-The VMFS volume is now visible under drive Z. Executing a dir Z:\ shows the root directory. In Windows Vista and XP SP3, this should work out of the box.
+The VMFS volume is now visible under drive Z. Executing a dir Z:\ shows the root directory. In Windows Vista, this works out of the box.
 
 Alternatively, you can also use the "Map Network Drive" wizard in Explorer.
 
