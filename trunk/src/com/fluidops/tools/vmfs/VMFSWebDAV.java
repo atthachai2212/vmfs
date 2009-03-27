@@ -26,6 +26,7 @@ import com.bradmcevoy.http.*;
 import com.bradmcevoy.http.Request.Method;
 import com.fluidops.base.Version;
 import com.fluidops.tools.vmfs.VMFSDriver.FileMetaInfo;
+import com.fluidops.util.StringUtil;
 import com.fluidops.util.logging.Debug;
 
 /**
@@ -115,7 +116,7 @@ public class VMFSWebDAV implements ResourceFactory, Initable
 		@Override
 		public String getContentType(String arg0)
 		{
-			return "text/plain";
+			return "application/octet-stream";
 		}
 
 		@Override
@@ -229,17 +230,23 @@ public class VMFSWebDAV implements ResourceFactory, Initable
 			ps.println("</pre>");
 			ps.println("<h1>Folder "+intern(path)+"</h1>");
 			
-			ps.println("<ul>");
+			ps.println("<table border='0' cellpadding=5><tr><th>Name</th><th>Size</th><th>Date</th></tr>");
 //			if ( intern(path).length()>0 && !intern(path).equals("/") )
 //				ps.println("<li><a href='"+new java.io.File(intern(path)).getParent()+"'>(parent)</a></li>");
 			
 			List<? extends Resource> c = getChildren();
 			for ( Resource r : c )
-				ps.println("<li><a href='"+ ((WebDAVFile)r).path + "'>" + r.getName() + "</a></li>");
-			ps.println("</ul>");
+			{
+				ps.println("<tr>");
+				ps.println("<td><a href='"+ ((WebDAVFile)r).path + "'>" + r.getName() + "</a></td>");
+				ps.println("<td align='right'>"+StringUtil.displaySizeInBytes(((WebDAVFile)r).getContentLength())+"</td>");
+				ps.println("<td align='right'>"+r.getModifiedDate()+"</td>");
+				ps.println("</tr>");
+			}
+			ps.println("</table>");
 
-			ps.println("VMFSTools (c) by <a href='http://www.fluidops.com'>fluid Operations</a> (v"+
-					Version.getVersion()+" "+Version.getRevision()+" / " +Version.getBuildDate() + ")");
+			ps.println("<br/>VMFSTools (c) by <a href='http://www.fluidops.com'>fluid Operations</a> (v"+
+					Version.getVersion()+" r"+Version.getRevision()+" / " +Version.getBuildDate() + ")");
 
 			ps.println("</body></html>");
 			ps.flush();
@@ -251,6 +258,11 @@ public class VMFSWebDAV implements ResourceFactory, Initable
 	public static String getPathPrefix()
 	{
 		return prefix;
+	}
+	
+	public static void setPathPrefix( String prefix )
+	{
+		VMFSWebDAV.prefix = prefix;
 	}
 	
 	String intern( String path )
