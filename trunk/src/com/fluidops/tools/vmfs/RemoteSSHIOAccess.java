@@ -79,7 +79,13 @@ public class RemoteSSHIOAccess extends IOAccess
         
         c = new Connection( host, port );
         ci = c.connect();
-        c.authenticateWithPassword(user, passwd);
+
+        // Enable auth without passwd
+        if ( passwd!=null )
+        	c.authenticateWithPassword(user, passwd);
+        else
+        	c.authenticateWithNone(user);
+        
         try
         {
         	sftp = new SFTPv3Client( c );
@@ -191,6 +197,7 @@ public class RemoteSSHIOAccess extends IOAccess
             try
             {
                 int res = sftp.read( deviceHandle, pos, buffer, offset, size);
+                Debug.out.println("SSH: read "+buffer.length+" @"+Long.toHexString(pos));
                 pos += res;
                 return res;
             }
