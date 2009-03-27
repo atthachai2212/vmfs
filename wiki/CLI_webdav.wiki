@@ -35,3 +35,17 @@ The VMFS volume is now visible under drive Z. Executing a dir Z:\ shows the root
 Alternatively, you can also use the "Map Network Drive" wizard in Explorer.
 
 Note: If you want to use Vista's "Add a Network Location" feature, the drive location needs to be specified as "\\host@port\vmfs", using the HTTP URL is not accepted.
+
+== Mounting on different Operating Systems ==
+
+Successfully mounting volumes seems to depend on whether WebDAV is serving on the default port (80), and whether there is a path prefix (like "/vmfs") or not.
+
+Here's the current "success list" for mounting with different operating systems. More feedback welcome:
+ * Windows Vista works
+ * Mac OS X (10.5.6) works
+ * 3rd party NetDrive client mounts fine
+ * Windows Server 2008 works fine without path prefix
+ * Windows Server 2003 server works fine with default port
+  This requires the WebFolders upgrade, see Microsoft KB907306.
+ * Windows XP mounts *with* port and *with* path prefix
+  Use the "Add Network Place" wizard (this does not show up as drive letter though).
