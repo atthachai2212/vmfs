@@ -42,6 +42,8 @@
     		<map from="${root}/lib/" to="lib/"/>
     	</pathconvert>
 	
+		<mkdir dir="${root}/deploy" />
+
 		<jar destfile="${root}/deploy/fvmfs.jar" duplicate="fail" compress="true">
 			<fileset dir="${root}/bin" includes="**/*.class" />
 			<manifest>
