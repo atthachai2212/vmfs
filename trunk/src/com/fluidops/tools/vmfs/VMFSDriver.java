@@ -663,11 +663,21 @@ public class VMFSDriver
     {
         List<FileMetaInfo> fmis = new ArrayList<FileMetaInfo>();
         List<FileRecord> frs = _dir( path );
+        List<String> names = new ArrayList<String>();
         if ( frs!=null )
         for ( FileRecord fr : frs )
         {
             if ( ".".equals(fr.name__128) || "..".equals(fr.name__128) )
                 continue;
+            
+            // Avoid duplicate entries
+            if ( names.contains(fr.name__128) )
+            {
+            	Debug.out.println("Omitting duplicate entry: " + fr.name__128);
+            	continue;
+            }
+            
+            names.add(fr.name__128);
 
             FileMetaInfo fmi = getMetaInfo(fr);
             if ( fmi!=null )
@@ -676,6 +686,13 @@ public class VMFSDriver
                 fmis.add( fmi );
             }
         }
+        // Sort the result
+        Collections.sort( fmis, new Comparator<FileMetaInfo> () {
+			@Override
+			public int compare(FileMetaInfo o1, FileMetaInfo o2)
+			{
+				return o1.fr.name__128.compareTo(o2.fr.name__128);
+			} } );
         return fmis;            
     }
     
@@ -789,7 +806,7 @@ public class VMFSDriver
             
             // Read the superblock file records and meta info
             frs = readFileRecords( rf, vmfsBase + 0x1400000 + ofs + blockSize );
-            fmis = readFileMetaInfos( rf, fdcBaseZero );
+            fmis = readFileMetaInfos( rf, fdcBaseZero, 6 );
             if ( !frs.isEmpty() && !fmis.isEmpty() ) break;
         }
         catch (Exception ex)
@@ -1185,22 +1202,23 @@ public class VMFSDriver
     }
 
     /**
-     * Reads file meta infos from the given location, stops at id==0.
-     * @param pos
+     * Reads file meta infos from the given location.
+     * @param pos Position to start reading from
+     * @param amount Amount of meta infos to read
      * @return
      * @throws Exception
      */
-    List<FileMetaInfo> readFileMetaInfos( IOAccess io, long pos ) throws Exception
+    List<FileMetaInfo> readFileMetaInfos( IOAccess io, long pos, int amount ) throws Exception
     {
         List<FileMetaInfo> res = new ArrayList<FileMetaInfo>();
         FileMetaInfo fmi;
-        do
+        for (int i=0; i<amount; i++)
         {
             fmi = readFileMetaInfo( io, pos );
             if ( fmi.fmr.id!=0 )
                 res.add( fmi );
             pos += 0x800;
-        } while ( fmi.fmr.id!=0 );
+        }
         
         return res;
     }
@@ -1229,6 +1247,15 @@ public class VMFSDriver
             rf = new RemoteSSHIOAccess( file, false );
         else
             rf = new RandomIOAccess( file, "r" );
+    }
+    
+    /**
+     * Set the volume IO access.
+     * @param io
+     */
+    public void setVolumeIOAccess( IOAccess io )
+    {
+    	rf = io;
     }
     
     /**
