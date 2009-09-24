@@ -11,8 +11,10 @@ package com.fluidops.tools.vmfs;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import com.fluidops.base.Version;
 import com.fluidops.tools.vmfs.VMFSDriver.FileMetaInfo;
@@ -134,6 +136,54 @@ public class VMFSTools
         }
     }
 
+    static Properties parseCommaSeparatedProps( String file )
+    {    	
+    	Properties res = null;
+    	if ( file.indexOf(',')>0 )
+    	{
+    		res = new Properties();
+    		try
+			{
+				res.load( new StringReader( file.replace(',', '\r') ) );
+			}
+			catch (IOException e)
+			{
+				res = null;
+			}
+    	}
+    	return res;
+    }
+    
+    public static IOAccess openIOAccess( String ioProvider, String ioFile, Properties ioProps ) throws IOException
+    {
+    	IOAccess io = null;
+    	try
+		{
+			io = (IOAccess) Class.forName( ioProvider ).newInstance();
+		}
+		catch (Exception e)
+		{
+			throw new IOException("Provider class "+ioProvider+" not found");
+		}
+		io.open( ioFile, ioProps );
+		return io;
+    }
+    
+    public static VMFSDriver getVMFSDriver( String volume ) throws Exception
+    {
+        Properties props = parseCommaSeparatedProps( volume );
+        VMFSDriver vi = new VMFSDriver();
+        if ( props!=null )
+        {
+        	vi.setVolumeIOAccess(
+        		openIOAccess( props.getProperty("provider"), props.getProperty("file"), props )
+        	);
+        }
+        else
+        	vi.openVolume( volume );
+        return vi;
+    }
+    
     void cli( String[] args) throws Throwable
     {
         System.out.println("VMFSTools (C) by fluid Operations (v"+Version.getVersion()+" r"+Version.getRevision()+" / " +Version.getBuildDate() + ")");
@@ -160,8 +210,7 @@ public class VMFSTools
         String f = args[0];
         String cmd = args[1];
             
-        vi = new VMFSDriver();
-        vi.openVolume(f);
+        vi = getVMFSDriver( f );
         vi.openVmfs();
 
         if ( "info".equals(cmd) )
