@@ -25,6 +25,11 @@ public abstract class IOAccess
     public abstract void setSize( long newSize );
     public abstract void close();
     
+    public void open( String file, java.util.Properties props ) throws IOException
+    {
+    	throw new IOException("Not implemented");
+    }
+    
     public int read( long pos, byte[] buffer, int offset, int size ) throws IOException
     {
         setPosition( pos );
