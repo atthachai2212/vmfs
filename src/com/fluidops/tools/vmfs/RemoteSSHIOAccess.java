@@ -210,7 +210,13 @@ public class RemoteSSHIOAccess extends IOAccess
         {
         	// SSH fallback
             Session s = c.openSession();
-            String ddCmd = "dd if=\""+path+"\" bs=1 skip="+pos+" count="+size;        
+            String ddCmd;
+            // If pos and size are on block boundaries, make use of bs=512 to reach up to 2TB
+            if ( pos%512==0 && size%512==0 )
+            	ddCmd = "dd if=\""+path+"\" bs=512 skip="+(pos/512L)+" count="+(size/512);
+            else
+            	ddCmd = "dd if=\""+path+"\" bs=1 skip="+pos+" count="+size;
+            	
             s.execCommand( ddCmd );
             byte[] output = readUrlToBuffer( s.getStdout() ).toByteArray();
             Debug.out.println("SSH: read "+output.length+" @"+Long.toHexString(pos));
