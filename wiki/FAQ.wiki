@@ -12,6 +12,10 @@ Accessing offline (e.g. backed up, unused, legacy) VMFS volumes is not a trivial
 
 fluidOps strives for openness and therefore provides this technology as a free solution to make backups and other offline VMFS volumes readable, from any environment.
 
+= What is the performance? =
+
+It depends. If all goes well, performance is pretty decent, we regularly achieve throughput of 3 to 4 GBytes per minute. Have look at this [CLI_samplerecovery CLI example session] to get an idea.
+
 = Do you have the VMFS specification? =
 
 No. The driver is the result of extensively analyzing the on-disk format, and comparing changes after certain file system operations. [HowCanIHelp This is an ongoing process.]
@@ -20,9 +24,11 @@ No. The driver is the result of extensively analyzing the on-disk format, and co
 
 Absolutely. Since we are only reading from the volume, there is no risk of interfering or data loss. Accessing a volume that is mounted on a VMware host is an easy way of [HowCanIHelp verifying the driver code.]
 
+<wiki:comment>
 = Do you plan to add write support? =
 
 Writing into existing files (i.e. virtual disks) is easy and will be included soon. Creating files and folders, or changing file allocation, is hard, and requires [HowCanIHelp a lot more work to be done.]
+</wiki:comment>
 
 = How can I help? =
 
