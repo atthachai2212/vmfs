@@ -8,12 +8,15 @@
  */
 package com.fluidops.tools.vmfs;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 
 import com.fluidops.base.Version;
+import com.fluidops.util.HexDump;
 import com.fluidops.util.StringUtil;
 import com.fluidops.util.logging.Debug;
 
@@ -68,7 +71,7 @@ public class VMFSDriver
         public long unknown__0x9a;
     }
     
-    public static class VMFSSuperBlock
+    public static class LVMInfo
     {
         public long size;
         public long blocks;
@@ -77,11 +80,15 @@ public class VMFSDriver
         byte[] fill__0x1d;
         public UUID uuid__0x54;
         public int unknown2;
-        public long l1;
-        public long l2;
-        public long l3;
-        public long l4;        
-        public long l5;
+        public long ctime;
+        public int unknown3;
+        public int numberOfSegments;
+        public int firstSegment;
+        public int unknown4;
+        public int lastSegment;
+        public int unknown5;
+        public long mtime;
+        public int numberOfExtents;
     }
     
     public static class FSInfo
@@ -98,12 +105,32 @@ public class VMFSDriver
         public UUID volumeUuid__0xb1;
     }
     
-    public static class Record
-    {
-        public int magic;
-        public long number;
-    }
+    public static final int VMFS_HB_MAGIC_OFF = 0xabcdef01;
+    public static final int VMFS_HB_MAGIC_ON = 0xabcdef02;
     
+    public final static long VMFS_HB_BASE = 0x0300000L;
+    public final static int VMFS_HB_SIZE = 0x200;
+    public final static int VMFS_HB_NUM = 2048;
+
+    public static class HeartbeatRecord
+    {
+    	public int magic;
+    	public long pos;
+    	public long seq;
+    	public long uptime;
+    	public UUID uuid;
+    	public int journalBlock;
+    	public int volVersion;
+    	public int version;
+   	}
+    
+    public static final int TYPE_FOLDER = 2;
+    public static final int TYPE_FILE = 3;
+    public static final int TYPE_SYMLINK = 4;
+    public static final int TYPE_META = 5;
+    public static final int TYPE_RDM = 6;
+    
+    public static final int DIR_ENTRY_SIZE = 140;
     
     public static class FileRecord
     {
@@ -114,7 +141,7 @@ public class VMFSDriver
         
         public boolean isFolder()
         {
-            return type==2 || type==4;
+            return type==TYPE_FOLDER || type==TYPE_SYMLINK;
         }
         
         public boolean equals( Object other )
@@ -136,22 +163,33 @@ public class VMFSDriver
         }
     }
     
+    public final static int FILE_RECORD_MAGIC = 0x10c00001;
+    
     public static class FileMetaHeader
     {
-        public int groupId;
-        public int position;        
+        public int magic;
+        public long position;
+        public long hbPos, hbSeq;
+        public long objSeq;
+        public int hbLock;
+        public UUID hbUuid;
+        public long mtime;
     }
     
     public static class FileMetaRecord
     {
         public int id;
         public int id2;
-        public int unknown1, type, unknown3;
-//        public byte[] unknown__6;
+        public int nlink, type, flags;
         public long size;
+        public long blockSize, blockCount;
         public int timeStamp1__0x2c;
         public int timeStamp2;
         public int timeStamp3;
+        public int uid, gid, mode;
+        public int zla;
+        public int tbz;
+        public int cow;
     }
     
     public static class RDMMetaRecord
@@ -233,12 +271,11 @@ public class VMFSDriver
     {
         public int blocks;
         public int count;
+        public int headerSize;
         public int dataSize;
-        public int subDataSize;
-        public short metaDataSize;
-        public short dataItems;
+        public int areaSize;
         public int itemCount;
-        public int bitmaps;
+        public int areaCount;
     }
     
     public static class BitmapHeader
@@ -250,9 +287,19 @@ public class VMFSDriver
         public int bitmapId__0x200;
         public int total;
         public int free;
-        public int used;
+        public int ffree;
         
         public byte[] bitmap__0x100;
+    }
+
+    public static class MBRPartitionEntry
+    {
+    	public byte bootable;
+    	public byte c,h,s;
+    	public byte partitionType;
+    	public byte c2,h2,s2;
+    	public int lbaStart;
+    	public int lbaSize;
     }
 
     IOAccess rf;
@@ -260,7 +307,7 @@ public class VMFSDriver
     int blockSize;
  
     VolumeInfo vi;
-    VMFSSuperBlock sb;
+    LVMInfo lvm;
     FSInfo fs;
     
     boolean hyperverbose;
@@ -289,7 +336,8 @@ public class VMFSDriver
         long basePos;
         long firstBitmapPos;
         BitmapMetaHeader bmp;
-        long dataBlockSize;
+        
+        public final static int VMFS_BITMAP_ENTRY_SIZE = 0x400;
         
         BitmappedBlockAllocation( IOAccess io ) throws Exception
         {
@@ -314,34 +362,34 @@ public class VMFSDriver
 
         long getDataBlockAreaSize()
         {
-            return dataBlockSize;
+            return bmp.areaSize;
         }
         
         long getDataBlockSize()
         {
-            return bmp.subDataSize;
+            return bmp.dataSize;
         }
         
         long getDataBlockAddress( long block )
         {
-            long addr = block * getDataBlockSize();
-            long area = addr / getDataBlockAreaSize();
+        	long itemsPerArea = (bmp.count * bmp.blocks);
+        	long area = block / itemsPerArea;
+            long mod = block % itemsPerArea;
             long areaAddr = getDataBlockAreaAddress( area );
-            
-            long perBlock = getDataBlockAreaSize() / getDataBlockSize();
-            long mod = block % perBlock;
-            
-            return areaAddr + mod * getDataBlockSize();
+                        
+            long res = areaAddr + mod * getDataBlockSize();
+            if ( hyperverbose ) Debug.out.println("blockAddr("+block+")="+res);
+            return res;
         }
         
         long getDataBlockAreaAddress( long area )
         {
-            long gr = area;
+            long bmpMetaSize = VMFS_BITMAP_ENTRY_SIZE * bmp.count;
+            long areaAddress = firstBitmapPos + area * bmp.areaSize;
             
-            long bmpMetaSize = 0x400 * bmp.count;
-            long grAddress = firstBitmapPos + (gr+1) * bmpMetaSize + gr * dataBlockSize;
-            
-            return basePos + grAddress;
+            long res = basePos + areaAddress + bmpMetaSize;
+            if ( hyperverbose ) Debug.out.println("areaAddress("+area+")="+Long.toHexString(res));
+            return res;
         }
         
         /**
@@ -362,15 +410,11 @@ public class VMFSDriver
             Debug.out.println("Managed items = "+bmp.itemCount);
             Debug.out.println("Count = "+bmp.count);
 
-            Debug.out.println("Data block size = "+bmp.subDataSize);
-            Debug.out.println("Data items = "+bmp.dataItems );
             Debug.out.println("Data size = "+bmp.dataSize);
+            Debug.out.println("Area size = "+bmp.areaSize);
+            Debug.out.println("Header size = "+bmp.headerSize);
 
-            
-            dataBlockSize = (long)(bmp.dataItems & 0xffff) * (long)bmp.dataSize;
-            Debug.out.println("Data area size = "+Long.toHexString(dataBlockSize) );
-
-            firstBitmapPos = 0x10000;
+            firstBitmapPos = bmp.headerSize;
             pos += firstBitmapPos;
         }
         
@@ -388,7 +432,7 @@ public class VMFSDriver
                 io.setPosition( pos );
                 Debug.out.println("Bitmap headers @"+Long.toHexString(io.getPosition()));
     
-                byte[] bmpBuf = new byte[ 0x400 ];
+                byte[] bmpBuf = new byte[ VMFS_BITMAP_ENTRY_SIZE ];
                 for ( int bitmapCount=0; bitmapCount<bmp.count; bitmapCount++)
                 {
                     io.read( bmpBuf, 0, bmpBuf.length );
@@ -423,7 +467,7 @@ public class VMFSDriver
                     Debug.err.println("POsition of block "+dataBlockCount+": "+dataAddr+" != "+io.getPosition());
                 dataBlockCount ++;
                 
-                pos = io.getPosition() + dataBlockSize;
+                pos = io.getPosition() + bmp.areaSize - (bmp.count * VMFS_BITMAP_ENTRY_SIZE);
         
                 Debug.out.println("XXX@"+Long.toHexString(io.getPosition())+" itemsLeft="+totalItems);
             }
@@ -446,7 +490,7 @@ public class VMFSDriver
         Debug.out.println("Managed items = "+bmp.itemCount);
         Debug.out.println("Count = "+bmp.count);
 
-        long dataBlockSize = (long)(bmp.dataItems & 0xffff) * (long)bmp.dataSize;
+        long dataBlockSize = (long)bmp.areaSize;
         Debug.out.println("Data item size = "+Long.toHexString(dataBlockSize) );
         
         pos += 0x10000;
@@ -496,45 +540,258 @@ public class VMFSDriver
         }
     }
 
+    List<ExtentInfo> extents;
+    public static final long LVM_SEGMENT_SIZE = 256L * 1024L * 1024L;
+    
     /**
-     * Detects/reads VMFS info structs.
+     * IOAccess that spans multiple VMFS LVM segments.
+     * 
+     * @author Uli
+     */
+    public class ExtentIOAccess extends IOAccess
+    {
+    	long pos = 0;
+    	long size;
+
+    	public ExtentIOAccess()
+    	{
+    		size = extents.get(0).lvm.size;
+    	}
+    	
+    	ExtentInfo getExtentForOffset( long ofs )
+    	{
+    		long seg = ofs / LVM_SEGMENT_SIZE;
+    		for (ExtentInfo ex : extents)
+    			if ( seg>=ex.lvm.firstSegment && seg<=ex.lvm.lastSegment )
+    				return ex;
+    		return null;
+    	}
+    	
+		@Override
+		public void close()
+		{
+			for (ExtentInfo ex : extents)
+				ex.rf.close();
+		}
+
+		@Override
+		public long getPosition()
+		{
+			return pos;
+		}
+
+		@Override
+		public long getSize()
+		{
+			return size;
+		}
+
+		@Override
+		public int read(byte[] buffer, int offset, int size) throws IOException
+		{
+			ExtentInfo ex = getExtentForOffset( pos );
+			if ( ex==null )
+				throw new IOException("Extent for pos="+pos+" not available");
+
+			long posInExtent = pos - ex.lvm.firstSegment*LVM_SEGMENT_SIZE;
+			
+			if ( (posInExtent+size) > ex.lvm.numberOfSegments*LVM_SEGMENT_SIZE )
+				throw new IOException("IO operation exceeds LVM segment");
+
+			ex.rf.setPosition( posInExtent + ex.vmfsBase + 0x1000000L );
+			return ex.rf.read(buffer, offset, size);
+		}
+
+		@Override
+		public void setPosition(long pos)
+		{
+			this.pos = pos;			
+		}
+
+		@Override
+		public void setSize(long newSize)
+		{
+			throw new RuntimeException("setSize not supported");			
+		}
+
+		@Override
+		public void write(byte[] buffer, int offset, int size)
+				throws IOException
+		{
+			throw new IOException("Readonly mode");
+		}
+    }
+    
+    /**
+     * This class encapsulates all info required for a
+     * VMFS extent, which in turn spans multiple segments.
+     * Each segment has size 256MB.
+     * 
+     * @author Uli
+     */
+    public static class ExtentInfo
+    {
+    	IOAccess rf;
+    	long offset;
+    	long vmfsBase;
+    	VolumeInfo vi;
+    	LVMInfo lvm;
+
+    	/**
+    	 * Opens extent on the given device.
+    	 * 
+    	 * If the VMFS is not stored RAW on the device,
+    	 * it parses the MBR partition table for the 1st
+    	 * VMware partition.
+    	 * 
+    	 * Throws exception if no VMFS extent was detected.
+    	 * 
+    	 * @param io
+    	 * @throws IOException
+    	 */
+    	public ExtentInfo( IOAccess io ) throws IOException
+    	{
+    		this.rf = io;
+    		try
+    		{
+    			readVmfsLvmInfo();
+    		}
+    		catch (Exception ex)
+    		{
+    			if (ex instanceof IOException) throw (IOException)ex;
+    			throw new IOException( ex );
+    		}
+    	}
+    	
+    	/**
+    	 * Reads/detects VMFS extent info.
+    	 * 
+    	 * @throws Exception
+    	 */
+    	void readVmfsLvmInfo() throws Exception
+    	{
+            // Read the basic VMFS meta data
+        	try
+        	{
+        		readVmfsLvmInfo( 0 );
+        		offset = 0;
+        	}
+        	catch (Exception ex)
+        	{
+        		// Detect start of VMFS partition
+        		long start = getVMFSPartitionOffset();
+        		
+        		if ( start>0 )
+        		{
+        			Debug.out.println("Detected VMFS partition @"+start);
+        			readVmfsLvmInfo( start );
+        			offset = start;
+        		}
+        		else
+        			throw ex;
+        	}
+    	}
+    	
+        /**
+         * Detects/reads VMFS info structs.
+         * @throws Exception
+         */
+        void readVmfsLvmInfo( long ofs ) throws Exception
+        {
+            vi = null;
+            long pos = 0x100000;
+            byte[] header = new byte[ 0x800 ];
+            while ( pos<0x100001 )
+            {
+                rf.setPosition( ofs + pos );
+                rf.read( header, 0, header.length );
+                
+                vi = new VolumeInfo();
+                NativeStruct.fromNative( vi, header, 0 );
+                if ( vi.magic==(int)0xc001d00d )
+                    break;
+                
+                pos += 0x10000;
+            }
+            if ( pos>=0x100001 )
+                throw new Exception("No VMware File System detected");
+            
+            vmfsBase = ofs + pos;
+            Debug.out.println("VMFS base @"+Long.toHexString(vmfsBase));
+            
+            lvm = new LVMInfo();
+            NativeStruct.fromNative( lvm, header, 0x200 );
+            
+            Debug.out.println("VMFS Volume at "+Long.toHexString(pos) );
+            Debug.out.println("Volume type = "+ vi.name__28_0x12 );
+            Debug.out.println("Volume UUID = "+ vi.uuid__0x82);
+            
+            Debug.out.println("LVM first,last,segments = "+lvm.firstSegment+","+lvm.lastSegment+","+lvm.numberOfSegments);
+            Debug.out.println("LVM extents = "+lvm.numberOfExtents);
+            
+            Debug.out.println("Size = "+ StringUtil.displaySizeInBytes(lvm.size) );
+            Debug.out.println("Blocks = "+lvm.blocks);
+            //Debug.out.println("UUIDString = "+sb.uuidString__35);
+            Debug.out.println("LVM UUID       = "+lvm.uuid__0x54);
+        }
+        
+        /**
+         * Reads the device's MBR and searches for the VMFS
+         * partition
+         * 
+         * @return Offset (in blocks) of the partition, or -1 if not found
+         * @throws IOException
+         * @throws Exception
+         */
+    	long getVMFSPartitionOffset() throws IOException, Exception
+    	{
+    		long start = -1;
+    		byte[] mbr = rf.read(0, 512);
+    		if ( mbr[510]==0x55 && mbr[511]==(byte)0xaa )
+    		{
+    			MBRPartitionEntry entry = new MBRPartitionEntry();
+    			for ( int p=0; p<=3; p++)
+    			{
+    				NativeStruct.fromNative(entry, mbr, 0x1be + p*0x10 );
+    				if ( entry.partitionType == (byte)0xfb )
+    				{
+    					start = 512L * (entry.lbaStart & 0xFFFFFFFFL);
+    					break;
+    				}
+    			}
+    		}
+    		return start;
+    	}
+    }
+    
+    /**
+     * Reads the VMFS info from the extent(s).
+     * Validates some extent conditions.
+     * 
      * @throws Exception
      */
     void readVmfsInfo() throws Exception
     {
-        vi = null;
-        long pos = 0x100000;
+    	// Copy LVM and VolInfo from 1st extent
+    	for (ExtentInfo ex:extents)
+    		if (ex.lvm.firstSegment==0)
+    		{
+            	vi = ex.vi;
+            	lvm = ex.lvm;
+    		}
+
+    	// Validate that the 1st extent is present
+    	if ( vi==null )
+    		throw new IOException("First extent of VMFS missing, cannot open");
+    	
+    	// Check if all extents are present
+    	if ( lvm.numberOfExtents!=extents.size() )
+    		System.err.println("Warning: only "+extents.size()+" of "+lvm.numberOfExtents+" VMFS extents present. Read errors on unavailable extents might occur");
+
         byte[] header = new byte[ 0x800 ];
-        while ( pos<0x400000 )
-        {
-            rf.setPosition( pos );
-            rf.read( header, 0, header.length );
-            
-            vi = new VolumeInfo();
-            NativeStruct.fromNative( vi, header, 0 );
-            if ( vi.magic==(int)0xc001d00d )
-                break;
-            
-            pos += 0x10000;
-        }
-        if ( pos>=0x400000 )
-            throw new Exception("No VMware File System detected");
-        
-        vmfsBase = pos;
-        Debug.out.println("VMFS base @"+Long.toHexString(vmfsBase));
-        
-        sb = new VMFSSuperBlock();
-        NativeStruct.fromNative( sb, header, 0x200 );
-        
-        Debug.out.println("VMFS Volume at "+Long.toHexString(pos) );
-        Debug.out.println("Volume type = "+ vi.name__28_0x12 );
-        Debug.out.println("Volume UUID = "+ vi.uuid__0x82);
-        Debug.out.println("Size = "+ StringUtil.displaySizeInBytes(sb.size) );
-        Debug.out.println("Blocks = "+sb.blocks);
-        //Debug.out.println("UUIDString = "+sb.uuidString__35);
-        Debug.out.println("UUID       = "+sb.uuid__0x54);
-                
-        pos = vmfsBase + 0x1200000;
+    	vmfsBase = 0; //0x100000;
+
+    	long pos = vmfsBase + 0x200000;
         Debug.out.println("@"+Long.toHexString(pos));
         rf.setPosition( pos );
         rf.read( header, 0, header.length );
@@ -551,24 +808,74 @@ public class VMFSDriver
         Debug.out.println("VMFS UUID = "+fs.uuid);
         Debug.out.println("VMFS block size = "+fs.blocksize__0xa1+" / "+Long.toHexString(fs.blocksize__0xa1));
         Debug.out.println("VMFS volume version = "+fs.volumeVersion); // 3, 4 or 5
-
-        pos = vmfsBase + 0x1300000;
-        
-        // 512-byte records with magic 0xabcdef01
-        // What are these used for???
-        rf.setPosition( pos );
-        Debug.out.println("@"+Long.toHexString(pos));
-        rf.read( header, 0, header.length );
-
-        Record r = new Record();
-        NativeStruct.fromNative( r, header, 0 );
-        if ( r.magic!=(int)0xabcdef01 )
-            throw new Exception("VMFS records not found");
-        Debug.out.println( "Record first serial = "+r.number);   
         
         blockSize = (int) fs.blocksize__0xa1;
+        
+        openHeartbeats();
     }
- 
+
+    /**
+     * "Opens" the heartbeat section by verifying that the first
+     * and the last entry have the correct magic number.
+     * 
+     * @throws Exception
+     */
+    void openHeartbeats() throws Exception
+    {
+        readHeartbeat( 0 );
+        readHeartbeat( VMFS_HB_NUM-1 );   
+        Debug.out.println( "Heartbeat records present" );
+    }
+
+    /**
+     * Reads the specified heartbeat record.
+     * @param num
+     * @return
+     * @throws Exception
+     */
+    public HeartbeatRecord readHeartbeat( int num ) throws Exception
+    {
+    	if ( num<0 || num>VMFS_HB_NUM )
+    		throw new IllegalArgumentException("Heartbeat # outside range: "+num);
+    	
+        long pos = vmfsBase + VMFS_HB_BASE + num*VMFS_HB_SIZE;
+        
+        rf.setPosition( pos );
+        Debug.out.println("@"+Long.toHexString(pos));
+
+        byte[] header = new byte[VMFS_HB_SIZE];
+        rf.read( header, 0, header.length );
+
+        HeartbeatRecord r = new HeartbeatRecord();
+        NativeStruct.fromNative( r, header, 0 );
+        if ( r.magic!=VMFS_HB_MAGIC_ON && r.magic!=VMFS_HB_MAGIC_OFF )
+            throw new Exception("VMFS heartbeat record "+num+" @"+rf.getPosition()+" not found - wrong magic number");
+        
+        return r;
+    }
+
+    /**
+     * Reads all heartbeat records, returns only active if onlyActive=true.
+     * 
+     * @param onlyActive
+     * @return
+     * @throws Exception
+     */
+    public List<HeartbeatRecord> readHeartbeats( boolean onlyActive ) throws Exception
+    {
+    	List<HeartbeatRecord> res = new ArrayList<HeartbeatRecord>();
+        for (int hb=0; hb<VMFS_HB_NUM; hb++)
+        {
+            HeartbeatRecord r = readHeartbeat( hb );
+            
+            if ( !onlyActive || (onlyActive && r.magic==VMFS_HB_MAGIC_ON) )
+            {
+            	res.add( r );
+            }
+        }
+        return res;
+    }
+    
     List<FileRecord> frs;
     List<FileMetaInfo> fmis;
     
@@ -642,15 +949,39 @@ public class VMFSDriver
         IOAccess io = new FileIOAccess( getMetaInfo(fr) );
         if ( io.getSize()==0 )
             // empty directory
-            rs = new ArrayList();
+            rs = new ArrayList<FileRecord>();
         else
-            rs = readFileRecords(io, 0 );
+            rs = readFileRecords(io, 0, (int)( io.getSize()/DIR_ENTRY_SIZE ) );
         io.close();
      
         if ( dirCache!=null )
             dirCache.put( fr, rs );
         
         return rs;
+    }
+    
+    /**
+     * Follow the symlink of the file record.
+     * @param fr
+     * @return
+     */
+    public String getSymLink( FileRecord fr )
+    {
+    	if ( fr.type==TYPE_SYMLINK )
+    	try
+    	{
+            IOAccess io = new FileIOAccess( getMetaInfo(fr) );
+            int sz = (int) io.getSize();
+            String symLink = new String( io.read(0, sz), "UTF-8" );
+            io.close();
+            return symLink;
+    	}
+    	catch (Exception ex)
+    	{
+    		Debug.err.println("Symlink cannot be followed - ignoring");
+    	}
+    	
+		return null;
     }
     
     /**
@@ -662,7 +993,7 @@ public class VMFSDriver
     public List<FileMetaInfo> dir( String path ) throws Exception
     {
         List<FileMetaInfo> fmis = new ArrayList<FileMetaInfo>();
-        List<FileRecord> frs = _dir( path );
+        List<FileRecord> frs = _dir( path, null );
         List<String> names = new ArrayList<String>();
         if ( frs!=null )
         for ( FileRecord fr : frs )
@@ -673,12 +1004,13 @@ public class VMFSDriver
             // Avoid duplicate entries
             if ( names.contains(fr.name__128) )
             {
-            	Debug.out.println("Omitting duplicate entry: " + fr.name__128);
+            	System.err.println("Omitting duplicate entry: " + fr.name__128);
+            	System.err.println(fr+" type="+fr.type+" bId="+fr.blockId+" rId="+fr.recordId);
+            	
             	continue;
             }
             
             names.add(fr.name__128);
-
             FileMetaInfo fmi = getMetaInfo(fr);
             if ( fmi!=null )
             {
@@ -696,10 +1028,11 @@ public class VMFSDriver
         return fmis;            
     }
     
-    List<FileRecord> _dir( String path ) throws Exception
+    List<FileRecord> _dir( String path, List<String> followed ) throws Exception
     {
         List<FileRecord> rs = frs;
         StringTokenizer st = new StringTokenizer( path, "/" );
+        String partialPath = "/";
         while ( st.hasMoreTokens() )
         {
             String token = st.nextToken();
@@ -708,14 +1041,30 @@ public class VMFSDriver
             if ( fr==null )
                 return null;
 
-            if ( fr.isFolder() )
+            if ( fr.type==TYPE_FOLDER )
             {
                 rs = getFileRecordsForDirectory(fr);
+            }
+            else if ( fr.type==TYPE_SYMLINK )
+            {
+            	token = getSymLink(fr);
+            	String followLink = partialPath + token;
+            	if ( followed==null ) followed = new ArrayList<String>();
+            	if ( followed.contains(followLink) )
+            	{
+            		System.err.println("Error: cycle in symlink "+followLink);
+            		return null;
+            	}
+            	followed.add( followLink );
+            	Debug.out.println("Followed link "+fr.name__128+" => "+followLink);
+            	rs = _dir( followLink, followed );
             }
             else
             {
                 throw new IOException("Illegal path: "+path);
             }
+            
+            partialPath += token + "/";
         }
         return rs;
     }
@@ -763,6 +1112,10 @@ public class VMFSDriver
                 //FileMetaInfo fmi = readFileMetaInfo( fdc, addr );
                 //fdc.close();
 
+                // FIXME
+//                if ( fmi.fmr.id==4 )
+//                	return fmi;
+                
                 if ( fmi.fmr.id==fr.blockId )
                 {
                     fmi.fr = fr;
@@ -790,23 +1143,28 @@ public class VMFSDriver
     {
     	Debug.out.println( "Opening VMFS on IOAccess="+rf );
     	
-        // Read the basic VMFS meta data
-        readVmfsInfo();
-
-        // search the FDC bitmap base
+    	readVmfsInfo();
+        
+    	// search the FDC bitmap base
         long ofs = 0;
         for (;;)
         {
         try
         {
             // Calculate the base address of the file descriptor area
-            BitmappedBlockAllocation tempFdcBmp = new BitmappedBlockAllocation( rf, vmfsBase + 0x1400000 + ofs );
+            BitmappedBlockAllocation tempFdcBmp = new BitmappedBlockAllocation( rf, vmfsBase + 0x400000 + ofs );
             long fdcBaseZero = tempFdcBmp.getDataBlockAddress( 0 );
             Debug.out.println("FDC base zero = " + Long.toHexString( fdcBaseZero ) );
             
             // Read the superblock file records and meta info
-            frs = readFileRecords( rf, vmfsBase + 0x1400000 + ofs + blockSize );
+            frs = readFileRecords( rf, vmfsBase + 0x400000 + ofs + blockSize, 1 );
+            fmis = readFileMetaInfos( rf, fdcBaseZero, 1 );
+            
+            long rootDirSize = fmis.get(0).fmr.size;
+            int rootDirEntries = (int) ( rootDirSize / DIR_ENTRY_SIZE );
+            frs = readFileRecords( rf, vmfsBase + 0x400000 + ofs + blockSize, rootDirEntries );
             fmis = readFileMetaInfos( rf, fdcBaseZero, 6 );
+            
             if ( !frs.isEmpty() && !fmis.isEmpty() ) break;
         }
         catch (Exception ex)
@@ -868,6 +1226,12 @@ public class VMFSDriver
                 throws IOException
         {
             int done = 0;
+            long amountLeft = getSize()-getPosition();
+            if ( amountLeft<=0 )
+            	return 0;
+            
+            if ( size>amountLeft )
+            	size = (int)amountLeft;
             
             while ( size>0 )
             {
@@ -875,15 +1239,15 @@ public class VMFSDriver
                 
                 if ( fmi.blockTab==null )
                     throw new IOException("This file has no allocation table (RDM)");
-                if ( fmi.blockTab.length<=bn )
-                    throw new IOException("Read beyond end of file: pos="+pos+" file="+fmi);
+//                if ( fmi.blockTab.length<=bn )
+//                    throw new IOException("Read beyond end of file: pos="+pos+" file="+fmi);
                 
-                BlockID bid = new BlockID( fmi.blockTab[ bn ] );                
+                BlockID bid = bn<fmi.blockTab.length ? new BlockID( fmi.blockTab[ bn ] ) : new BlockID(0);                
                 int posInBlock = (int) (pos % blockSize);
                 int maxAmountInBlock = (int) ( blockSize - posInBlock  );
                 
                 IOAccess io = rf;
-                long base = vmfsBase + 0x1000000L;
+                long base = vmfsBase; // + 0x1000000L;
                 long blockAddr = (long)bid.number * blockSize;
 
                 //Debug.out.println("Reading from block "+bid.number);
@@ -891,6 +1255,9 @@ public class VMFSDriver
 
                 switch ( bid.type )
                 {
+                	case 0:
+                		// sparse block
+                		break;
                     case 1:
                         break;
                     case 2:
@@ -909,7 +1276,16 @@ public class VMFSDriver
                 
                 int thisTime = Math.min(size, maxAmountInBlock);
 
-                int res = io.read( posInDevice, buffer, offset, thisTime );
+                int res;
+                if ( bid.type==0 )
+                {
+                	// sparse block, fill result with 0
+                	if ( buffer!=null )
+                		Arrays.fill( buffer, offset, offset+thisTime, (byte)0 );
+                	res = thisTime;
+                }
+                else
+                	res = io.read( posInDevice, buffer, offset, thisTime );
                 
                 done += res;                
                 pos += thisTime;
@@ -923,6 +1299,40 @@ public class VMFSDriver
             return done;
         }
 
+        /**
+         * Returns the allocated logical extents of the file.
+         * Usefule for sparse ("thin provisioned") files to iterate over
+         * allocated data.
+         * 
+         * @return
+         */
+        public List<Long> getAllocatedExtents()
+        {
+        	List<Long> alloc = new ArrayList<Long>();
+        	
+        	long p = 0, sz = 0;
+        	for (int n=0; n<fmi.blockTab.length; n++)
+        	{
+        		int bid = fmi.blockTab[n];
+        		if ( bid==0 )
+        		{
+        			if ( sz>0 )
+        			{
+        				alloc.add( p ); alloc.add( sz );
+        			}
+        			p = (long)blockSize * (n+1);
+        			sz = 0;
+        		}
+        		else
+        			sz += blockSize;
+        	}
+			if ( sz>0 )
+			{
+				alloc.add( p ); alloc.add( sz );
+			}
+        	return alloc;
+        }
+        
         @Override
         public void setPosition(long pos)
         {
@@ -1022,13 +1432,13 @@ public class VMFSDriver
      * @return
      * @throws Exception
      */
-    List<FileRecord> readFileRecords( IOAccess io, long pos ) throws Exception
+    List<FileRecord> readFileRecords( IOAccess io, long pos, int count ) throws Exception
     {
         List<FileRecord> res = new ArrayList<FileRecord>();
         
         FileRecord fr = null;
         int sz = new NativeStruct(FileRecord.class).getSize();
-        do
+        for ( int i=0; i<count; i++ )
         {
             fr = readFileRecord( io, pos );
             pos += sz;
@@ -1036,7 +1446,6 @@ public class VMFSDriver
             if ( fr.type!=0 )
                 res.add( fr );
         }
-        while ( fr.type!=0 ); 
         
         return res;
     }
@@ -1103,6 +1512,57 @@ public class VMFSDriver
             }
         }
         
+        /**
+         * Pretty toString useful for listing files / directories etc.
+         * 
+         * @return
+         */
+        public String toPrettyString()
+        {
+            String p = fullPath;
+            if ( p.endsWith("/") )
+                p = p.substring( 0, p.length()-1 );
+            
+            Date d = new java.util.Date(fmr.timeStamp1__0x2c*1000L);
+            String res = "[unknown object type: "+this.fmr.type+" name="+fr.name__128+"]";
+            switch ( this.fmr.type )
+            {
+            	case TYPE_META:
+            	case TYPE_FILE:
+                    res = String.format("%1$tD %1$tT %2$,15d %3$s",
+                    		d,
+                    		fmr.size,
+                    		p+"/"+fr.name__128
+                    		);
+                    break;
+            	case TYPE_FOLDER:
+            		res = String.format("%1$tD %1$tT %2$15s %3$s",
+                		d,
+                		"(dir)",
+                		p+"/"+fr.name__128
+                		);
+            		break;
+            	
+            	case TYPE_SYMLINK:
+            		res = String.format("%1$tD %1$tT %2$15s %3$s => %4$s",
+                    		d,
+                    		"(symlink)",
+                    		p+"/"+fr.name__128,
+                    		getSymLink(fr)
+                    		);     		
+            		break;
+            	case TYPE_RDM:
+            		res = String.format("%1$tD %1$tT %2$15s %3$s => %4$s",
+                    		d,
+                    		"(rdm "+StringUtil.displaySizeInBytes(fmr.size) +")",
+                    		p+"/"+fr.name__128,
+                    		rdm.lunType__28+" "+rdm.lunUuid__17
+                    		);
+            		break;
+            }
+            return res;
+        }
+        
         public String toString()
         {
             String p = fullPath;
@@ -1138,16 +1598,8 @@ public class VMFSDriver
         
         NativeStruct.fromNative( fmh, header, 0 );
         
-        /* this validation might not always be true!
-        
-        long relPos = pos - 0x1000000L - vmfsBase; // - 0x3000000L - vmfsBase;
-        if ( (long)fmh.position != relPos )
-        {
-            Debug.out.println("Address error: "+Long.toHexString(fmh.position)+" does not match "+Long.toHexString(relPos) );
-            throw new IOException("No file record at location "+pos);
-        }
-        
-        */
+        if ( fmh.magic!=FILE_RECORD_MAGIC )
+        	throw new Exception("Illegal FileMetaRecord @"+pos);
         
         NativeStruct.fromNative( fmr, header, 0x200 );
         //HexDump.dump( header );
@@ -1230,6 +1682,7 @@ public class VMFSDriver
     public void closeVolume() throws IOException
     {
         if ( rf!=null ) rf.close();
+        extents = null;
     }
     
     /**
@@ -1241,21 +1694,75 @@ public class VMFSDriver
     public void openVolume( String file ) throws IOException, URISyntaxException
     {
         closeVolume();
+        extents = new ArrayList<ExtentInfo>();
         
-        // Open the volume for VMFS analysis
-        if ( file.startsWith("ssh://"))
-            rf = new RemoteSSHIOAccess( file, false );
-        else
-            rf = new RandomIOAccess( file, "r" );
+        String[] volumes = file.split(",");
+        for ( String vol : volumes )
+        	openSingleVolume( vol );
     }
     
+    public void openSingleVolume( String file ) throws IOException, URISyntaxException
+    {
+        // Open the volume for VMFS analysis
+        if ( file.startsWith("ssh://"))
+            setVolumeIOAccess( new RemoteSSHIOAccess( file, false ) );
+        else if ( file.startsWith("http://"))
+        	setVolumeIOAccess( providerIOAccess(file) );
+        else if ( file.startsWith("file://")) 
+        	setVolumeIOAccess( new RandomIOAccess( new File(new URI(file)).getAbsolutePath(), "r" ) );
+        else
+        	setVolumeIOAccess( new RandomIOAccess( file, "r" ) );
+    }
+    
+    private IOAccess providerIOAccess(String file) throws IOException, URISyntaxException
+    {
+        URI uri = new URI(file);
+        String[] pairs = uri.getQuery().split("&");
+        Properties props = new Properties();
+        for (String pair : pairs)
+        {
+            String[] kv = pair.split("=");
+            props.setProperty(kv[0], kv[1]);
+        }
+        
+        try
+        {
+            IOAccess rf = (IOAccess) Class.forName(props.getProperty("provider")).newInstance();
+            String[] uInfo = uri.getUserInfo().split(":");
+            props.setProperty("filer", "http://"+uri.getHost());
+            props.setProperty("user", uInfo[0]);
+            props.setProperty("password", uInfo[1]);
+            rf.open(uri.getPath(), props);
+            return rf;
+        }
+        catch (Exception e)
+        {
+            throw new IOException("Provider class "+props.getProperty("provider")+" not found", e);
+        }
+    }
+
     /**
      * Set the volume IO access.
      * @param io
      */
-    public void setVolumeIOAccess( IOAccess io )
+    public void setVolumeIOAccess( IOAccess io ) throws IOException
     {
-    	rf = io;
+    	// Open the VMFS extent (throws exception if no VMFS present)
+    	ExtentInfo ex = new ExtentInfo( io );
+    	
+    	// Verify that the extent belongs to the right LVM
+    	if ( !extents.isEmpty() && !extents.get(0).lvm.uuid__0x54.toString().equals(ex.lvm.uuid__0x54.toString()) )
+    		throw new IOException("LVM UUID does not match. Expected: "+extents.get(0).lvm.uuid__0x54+" got: "+ex.lvm.uuid__0x54+" device: "+io);
+    	
+    	// Verify that the extent isn't already present
+    	for (ExtentInfo exx : extents)
+    		if (exx.lvm.firstSegment==ex.lvm.firstSegment)
+    			throw new IOException("LVM extent already opened: "+io);
+    	
+    	extents.add( ex );
+    	
+    	if ( rf==null )
+    		rf = new ExtentIOAccess();
     }
     
     /**
