@@ -13,9 +13,9 @@ The productive virtual machines are running on vSphere connected to a centralize
 A productive virtual machine was broken and must be recovered from a past snapshot.
 To achieve this, the snapshot must be made available to the recovery system.
 
-In our example, the VMFS consists of two disk extents, and are mapped to the recovery system via iSCSI. The two extents are mapped to the local disks \\.\PhysicalDrive2 and \\.\PhysicalDrive3
+In our example, the VMFS consists of two disk extents, and are mapped to the recovery system via iSCSI. The two extents are mapped to the local disks {{{\\.\PhysicalDrive2}}} and {{{\\.\PhysicalDrive3}}}
 
-The storage hardware in this example is a NetApp filer, and the recovery station runs Windows 7 with the iSCSI software initiator. Network connectivity is 1 GBit ethernet.
+The storage hardware in this example is a NetApp storage filer, and the recovery station runs Windows 7 with the iSCSI software initiator. Network connectivity is 1 GBit ethernet.
 
 == List the VMFS ==
 
