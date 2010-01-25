@@ -192,6 +192,7 @@ public class VMFSTools
 		System.out.println("  VMFSVolume info");
 		System.out.println("  VMFSVolume dir path");
 		System.out.println("  VMFSVolume dirall path");
+		System.out.println("  VMFSVolume cat path");
 		System.out.println("  VMFSVolume fileinfo path");
 		System.out.println("  VMFSVolume filecopy path [newname position size]");
 		System.out.println("  VMFSVolume filedump path position size");
