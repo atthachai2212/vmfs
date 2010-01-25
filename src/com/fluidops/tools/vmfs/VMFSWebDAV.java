@@ -267,9 +267,9 @@ public class VMFSWebDAV implements ResourceFactory, Initable
 						break;
 					case VMFSDriver.TYPE_RDM:
 						ps.println("<td>" + r.getName() + "</td>");
-						ps.println("<td align='right'>(rdm)</td>");
+						ps.println("<td align='right'>(rdm "+StringUtil.displaySizeInBytes(fmi.fmr.size) +")</td>");
 						ps.println("<td align='right'>"+r.getModifiedDate()+"</td>");
-						ps.println("<td>&rarr; Type='"+ fmi.rdm.lunType__28+"' UUID='"+fmi.rdm.lunUuid__17+"'");
+						ps.println("<td>&rarr; Type=["+ fmi.rdm.lunType__28+"] UUID=["+fmi.rdm.lunUuid__17+"]");
 						break;
 					default:
 						ps.println("<td>" + r.getName() + "</td>");
