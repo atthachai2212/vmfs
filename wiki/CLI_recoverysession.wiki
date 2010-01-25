@@ -16,7 +16,7 @@ To achieve this, the snapshot must be made available to the recovery system.
 In our example, the VMFS consists of two disk extents, and are mapped to the recovery system via iSCSI. The two extents are mapped to the local disks \\.\PhysicalDrive2 and \\.\PhysicalDrive3
 
 First, we list the contents of the virtual machine in question.
-
+{{{
 java -jar fvmfs.jar \\.\PhysicalDrive2,\\.\PhysicalDrive3 dir "/Uli01 Virtual Machine"
 
 01/20/10 16:38:06           (dir) /Uli01 Virtual Machine
@@ -28,10 +28,11 @@ java -jar fvmfs.jar \\.\PhysicalDrive2,\\.\PhysicalDrive3 dir "/Uli01 Virtual Ma
 01/20/10 16:38:06           3.026 /Uli01 Virtual Machine/Uli01 Virtual Machine.vmx
 01/20/10 16:32:48             276 /Uli01 Virtual Machine/Uli01 Virtual Machine.vmxf
 01/20/10 16:38:07          82.247 /Uli01 Virtual Machine/vmware.log
+}}}
 
 Now, we recover the virtual machine disk file:
 
-
+{{{
 java -jar fvmfs.jar \\.\PhysicalDrive2,\\.\PhysicalDrive3 filecopy "/Uli01 Virtual Machine/Uli01 Virtual Machine-flat.vmdk"
 
 VMFSTools (C) by fluid Operations (v8.8.8.8888 r?? / 8888-12-31_23-59-59)
@@ -85,5 +86,6 @@ Copying file -- bytes left=1029701632 throughput=65393 KB/s ETA=15s
 Copying file -- bytes left=608436224 throughput=67569 KB/s ETA=9s
 Copying file -- bytes left=193200128 throughput=69604 KB/s ETA=2s
 Copied 8589934592 bytes in 121s throughput was 70495 KB/s
+}}}
 
 The disk file was recovered at a decent rate of 70 MBytes per second, or roughly 4 GBytes per minute. The performance is obviously depending on the source storage system, on the type of connection between storage and recovery system, and on the destination storage system. And of course on the load of both the source and the destination system. Hence, your mileage may vary!
