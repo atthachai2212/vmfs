@@ -11,6 +11,7 @@ package com.fluidops.tools.vmfs;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.Properties;
 
 import com.fluidops.base.Version;
 import com.fluidops.tools.vmfs.VMFSDriver.FileMetaInfo;
+import com.fluidops.tools.vmfs.VMFSDriver.HeartbeatRecord;
 import com.fluidops.util.HexDump;
 import com.fluidops.util.StringUtil;
 
@@ -136,15 +138,15 @@ public class VMFSTools
         }
     }
 
-    static Properties parseCommaSeparatedProps( String file )
+    static Properties parseCharSeparatedProps( String file, char sep )
     {    	
     	Properties res = null;
-    	if ( file.indexOf(',')>0 )
+    	if ( file.indexOf(';')>0 )
     	{
     		res = new Properties();
     		try
 			{
-				res.load( new StringReader( file.replace(',', '\r') ) );
+				res.load( new StringReader( file.replace(sep, '\r') ) );
 			}
 			catch (IOException e)
 			{
@@ -171,7 +173,7 @@ public class VMFSTools
     
     public static VMFSDriver getVMFSDriver( String volume ) throws Exception
     {
-        Properties props = parseCommaSeparatedProps( volume );
+        Properties props = parseCharSeparatedProps( volume, ';' );
         VMFSDriver vi = new VMFSDriver();
         if ( props!=null )
         {
@@ -183,27 +185,35 @@ public class VMFSTools
         	vi.openVolume( volume );
         return vi;
     }
-    
+
+	void showCliHelp()
+	{
+		System.out.println("Arguments:");
+		System.out.println("  VMFSVolume info");
+		System.out.println("  VMFSVolume dir path");
+		System.out.println("  VMFSVolume dirall path");
+		System.out.println("  VMFSVolume fileinfo path");
+		System.out.println("  VMFSVolume filecopy path [newname position size]");
+		System.out.println("  VMFSVolume filedump path position size");
+		System.out.println("  VMFSVolume showheartbeats");
+		System.out.println("  VMFSVolume webdav [host port]");
+		System.out.println();
+		System.out.println("VMFSVolume can be any mounted VMFS volume, or a volume reachable by SSH/SFTP.");
+		System.out.println("Multiple VMFS extents can be specified using a comma-separated list.");
+		System.out.println("Examples:");
+		System.out.println("  \\\\sambaserver\\luns\\bigdisk dir /Linux_VMs");
+		System.out.println("  ssh://root:passwd@linuxhost/mnt/vmfslun fileinfo /disks/SwapDisk-flat.vmdk");
+		System.out.println("  \\\\.\\PhysicalDrive3,\\\\.\\PhysicalDrive4 filecopy /Windows-Template/W2008.vmdk x:\\recover\\W2008.vmdk");
+	}
+	
     void cli( String[] args) throws Throwable
     {
-        System.out.println("VMFSTools (C) by fluid Operations (v"+Version.getVersion()+" r"+Version.getRevision()+" / " +Version.getBuildDate() + ")");
+        System.out.println("VMFSTools (C) by fluid Operations (v"+Version.getVersion()+" r"+"??"/*Version.getRevision()*/+" / " +Version.getBuildDate() + ")");
         System.out.println("http://www.fluidops.com");
         System.out.println();
         if ( args.length<2 )
         {
-            System.out.println("Arguments:");
-            System.out.println("  VMFSVolume info");
-            System.out.println("  VMFSVolume dir path");
-            System.out.println("  VMFSVolume dirall path");
-            System.out.println("  VMFSVolume fileinfo path");
-            System.out.println("  VMFSVolume filecopy path [newname position size]");
-            System.out.println("  VMFSVolume filedump path position size");
-            System.out.println("  VMFSVolume webdav [host port]");
-            System.out.println();
-            System.out.println("VMFSVolume can be any mounted VMFS volume, or a volume reachable by SFTP.");
-            System.out.println("Examples:");
-            System.out.println("  \\\\sambaserver\\luns\\bigdisk dir /Linux_VMs");
-            System.out.println("  ssh://root:passwd@linuxhost/mnt/vmfslun fileinfo /disks/SwapDisk-flat.vmdk");
+            showCliHelp();
             return;
         }
 
@@ -217,7 +227,7 @@ public class VMFSTools
         {
             showVMFSInfo();
         }
-        if ( "dirall".equals(cmd) )
+        else if ( "dirall".equals(cmd) )
         {
             String path = args[2];
             if ( path==null )
@@ -259,13 +269,27 @@ public class VMFSTools
         	int port = args.length>3 ? Integer.parseInt(args[3]) : 50080;
         	runWebDAVServer( bind, port );
         }
+        else if ( "showheartbeats".equals(cmd) )
+        {
+        	showHeartbeats();
+        }
+        else if ( "cat".equals(cmd) )
+        {
+        	String file = args[2];
+        	doCat(file);
+        }
+        else
+        {
+        	// Unknown command
+        	showCliHelp();
+        }
         vi.closeVolume();        
     }
 
     static void showVMFSInfo( java.io.PrintStream out, VMFSDriver vi ) throws Exception
     {
         VMFSDriver.VolumeInfo volInfo = vi.vi;
-        VMFSDriver.VMFSSuperBlock superBlock = vi.sb;
+        VMFSDriver.LVMInfo superBlock = vi.lvm;
         VMFSDriver.FSInfo fs = vi.fs;
         
         out.println("VMFS label         = "+fs.label__128);
@@ -299,10 +323,11 @@ public class VMFSTools
 
     void doFileCopy(String file, long pos, long sz, String localfile) throws Exception
     {
+    	boolean stdout = "-".equals(localfile);
         IOAccess io = vi.openFile( file );
         long size = io.getSize();
-        System.out.println("Size = "
-                + StringUtil.displaySizeInBytes(size) );
+        if ( !stdout )
+        	System.out.println("Size = " + StringUtil.displaySizeInBytes(size) );
 
         if ( localfile==null )
         	localfile = new File(file).getName();
@@ -311,28 +336,42 @@ public class VMFSTools
         if ( sz==0 )
         	sz = size;
         
-        FileOutputStream out = new FileOutputStream( localfile );
+        OutputStream out = stdout ? System.out : new FileOutputStream( localfile );
         
         long todo = sz;
-        int CHUNK = 16384;
+        int CHUNK = 262144;
         byte[] buffer = new byte[CHUNK];
+        long start = System.currentTimeMillis();
         long t0 = System.currentTimeMillis();
         while ( todo>0 )
         {
         	int now = todo>CHUNK ? CHUNK : (int)todo;
         	int res = io.read( buffer, 0, now );
-        	out.write( buffer, 0, res );
+        	if ( stdout )
+        		((java.io.PrintStream)out).print( new String(buffer, 0, res, "UTF-8") );
+        	else
+        		out.write( buffer, 0, res );
         	todo -= res;
-        	
-        	if ( System.currentTimeMillis()-t0 > 2500 )
+
+        	if ( !stdout && System.currentTimeMillis()-t0 > 2500 )
         	{
         		t0 = System.currentTimeMillis();
-        		
-        		System.out.println("Copying file -- bytes left="+todo);
+        		long done = sz-todo;
+        		long t = t0-start;
+        		if ( t==0 ) t=1;
+        		long thru = done/t;
+        		System.out.println("Copying file -- bytes left="+todo+" throughput="+thru+" KB/s ETA="+todo/thru/1000+"s");
         	}
         }
-        
-        out.close();
+    	long end = System.currentTimeMillis();
+        if ( !stdout )
+        {
+        	long t = end-start;
+    		if ( t==0 ) t=1;
+    		long thru = sz/t;
+        	System.out.println("Copied "+sz+" bytes in "+(t/1000L)+"s throughput was "+thru+" KB/s" );
+        	out.close();
+        }
         io.close();
     }
 
@@ -342,7 +381,7 @@ public class VMFSTools
         if (dir != null)
             for (FileMetaInfo fr : dir)
             {
-                System.out.println(fr);
+                System.out.println(fr.toPrettyString());
             }
     }
 
@@ -352,7 +391,7 @@ public class VMFSTools
         if (dir != null)
             for (FileMetaInfo fr : dir)
             {
-                System.out.println(fr);
+                System.out.println(fr.toPrettyString());
             }
     }
 
@@ -361,7 +400,21 @@ public class VMFSTools
         IOAccess io = vi.openFile( file );
         System.out.println("Size = "
                 + StringUtil.displaySizeInBytes(io.getSize()));
-   
+
+        
+        if ( io instanceof VMFSDriver.FileIOAccess )
+        {
+        	List<Long> alloc = ((VMFSDriver.FileIOAccess)io).getAllocatedExtents();
+        	long tot = 0;
+        	for (int i=0; i<alloc.size(); i+=2)
+        	{
+        		long pos = alloc.get(i), sz = alloc.get(i+1);
+        		System.out.println("Logical extent @"+pos+" sz="+sz);
+        		tot += sz;
+        	}
+            System.out.println("Allocated size of extents = "+ StringUtil.displaySizeInBytes(tot) );
+        }
+        
         // Read over the whole file to gather the block allocation analysis
         long todo = io.getSize();
         IOAccess device = vi.rf;
@@ -378,6 +431,7 @@ public class VMFSTools
    
         vi.rf = device;
    
+        long totalSize = 0;
         for (int i = 0; i < analysis.readAddress.size(); i++)
         {
             long adr = analysis.readAddress.get(i);
@@ -385,13 +439,47 @@ public class VMFSTools
             System.out.println("Extent[" + i + "] = @" + Long.toHexString(adr)
                     + "(" + adr + ") size=" + Long.toHexString(sz) + "(" + sz
                     + ")");
+            totalSize += sz;
         }
+        System.out.println("Allocated size of extents = "+ StringUtil.displaySizeInBytes(totalSize) );
         io.close();
     }
     
     void runWebDAVServer( String host, int port ) throws Exception
     {
-    	VMFSWebDAV.runWebDAVServer( vi, host, port );
+    	throw new Exception("removed from fbase for now");
+    	//VMFSWebDAV.runWebDAVServer( vi, host, port );
+    }
+    
+    void showHeartbeats() throws Exception
+    {
+    	int count = 0;
+    	int active = 0;
+    	for ( HeartbeatRecord hb : vi.readHeartbeats( false ) )
+    	{
+    		if ( hb.magic==VMFSDriver.VMFS_HB_MAGIC_ON )
+    		{
+    			long s = hb.uptime/1000000L;
+    			long m = (s/60) % 60;
+    			long h = (s/3600L) % 24;
+    			long d = s/(3600L*24L);
+    			
+    			System.out.println("Heartbeat #"+count+" pos="+hb.pos+" seq="+hb.seq+" UUID="+hb.uuid+
+    					" uptime="+String.format("%d days %02d:%02d (%d secs)", d,h,m,s));
+    			active++;
+    		}
+    		else if ( hb.magic!=VMFSDriver.VMFS_HB_MAGIC_OFF )
+    		{
+    			System.out.println("Heartbeat record #"+count+" has invalid magic "+Long.toHexString(hb.magic));
+    		}
+    		count ++;
+    	}
+    	System.out.println("Total of "+count+" heartbeats, "+active+" active.");
+    }
+    
+    void doCat( String file ) throws Exception
+    {
+    	doFileCopy(file, 0, 0, "-");
     }
     
     /**
