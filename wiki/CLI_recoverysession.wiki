@@ -2,7 +2,7 @@
 
 = Introduction =
 
-This section shows a sample session that shows how to recover a virtual machine from a snapshotted VMFS LUN.
+This section describes a sample session that shows how to recover a virtual machine from a snapshotted VMFS LUN.
 
 = Scenario =
 
@@ -88,4 +88,6 @@ Copying file -- bytes left=193200128 throughput=69604 KB/s ETA=2s
 Copied 8589934592 bytes in 121s throughput was 70495 KB/s
 }}}
 
-The disk file was recovered at a decent rate of 70 MBytes per second, or roughly 4 GBytes per minute. The performance is obviously depending on the source storage system, on the type of connection between storage and recovery system, and on the destination storage system. And of course on the load of both the source and the destination system. Hence, your mileage may vary!
+The disk file was recovered at a decent rate of 70 MBytes per second, or roughly 4 GBytes per minute!
+
+The performance is obviously depending on the source storage system, on the type of connection between storage and recovery system, and on the destination storage system. And of course on the load of both the source and the destination system. Hence, your mileage may vary!
