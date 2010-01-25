@@ -15,6 +15,10 @@ To achieve this, the snapshot must be made available to the recovery system.
 
 In our example, the VMFS consists of two disk extents, and are mapped to the recovery system via iSCSI. The two extents are mapped to the local disks \\.\PhysicalDrive2 and \\.\PhysicalDrive3
 
+The storage hardware in this example is a NetApp filer, and the recovery station runs Windows 7 with the iSCSI software initiator. Network connectivity is 1 GBit ethernet.
+
+== List the VMFS ==
+
 First, we list the contents of the virtual machine in question.
 {{{
 java -jar fvmfs.jar \\.\PhysicalDrive2,\\.\PhysicalDrive3 dir "/Uli01 Virtual Machine"
@@ -29,6 +33,8 @@ java -jar fvmfs.jar \\.\PhysicalDrive2,\\.\PhysicalDrive3 dir "/Uli01 Virtual Ma
 01/20/10 16:32:48             276 /Uli01 Virtual Machine/Uli01 Virtual Machine.vmxf
 01/20/10 16:38:07          82.247 /Uli01 Virtual Machine/vmware.log
 }}}
+
+== Virtual Disk Recovery ==
 
 Now, we recover the virtual machine disk file:
 
@@ -88,6 +94,10 @@ Copying file -- bytes left=193200128 throughput=69604 KB/s ETA=2s
 Copied 8589934592 bytes in 121s throughput was 70495 KB/s
 }}}
 
+= Conclusions =
+
 The disk file was recovered at a decent rate of 70 MBytes per second, or roughly 4 GBytes per minute!
 
 The performance is obviously depending on the source storage system, on the type of connection between storage and recovery system, and on the destination storage system. And of course on the load of both the source and the destination system. Hence, your mileage may vary!
+
+Side note: of course, we could have achieved the same result by running the webdav server (using the webdav CLI command), and recovering the file from the web UI. This is slightly slower, because the data flows through the WebDAV engine and the HTTP stack before being stored on the local disk.
