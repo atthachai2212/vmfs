@@ -14,7 +14,7 @@ fluidOps strives for openness and therefore provides this technology as a free s
 
 = What is the performance? =
 
-It depends. If all goes well, performance is pretty decent, we regularly achieve throughput of 3 to 4 GBytes per minute. Have look at this [CLI_recoverysession CLI example session] to get an idea.
+It depends. If all goes well, performance is pretty decent, we regularly achieve throughputs of up to 4 GBytes per minute. Have look at this [CLI_recoverysession CLI example session] to get an idea.
 
 = Do you have the VMFS specification? =
 
