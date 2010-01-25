@@ -447,8 +447,7 @@ public class VMFSTools
     
     void runWebDAVServer( String host, int port ) throws Exception
     {
-    	throw new Exception("removed from fbase for now");
-    	//VMFSWebDAV.runWebDAVServer( vi, host, port );
+    	VMFSWebDAV.runWebDAVServer( vi, host, port );
     }
     
     void showHeartbeats() throws Exception
