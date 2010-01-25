@@ -157,6 +157,11 @@ public class VMFSWebDAV implements ResourceFactory, Initable
 		{
 			return getModifiedDate();
 		}
+		
+		public VMFSDriver.FileMetaInfo getVmfsFileMetaInfo()
+		{
+			return fr;
+		}
 	}
 	
 	/**
@@ -238,9 +243,39 @@ public class VMFSWebDAV implements ResourceFactory, Initable
 			for ( Resource r : c )
 			{
 				ps.println("<tr>");
-				ps.println("<td><a href='"+ ((WebDAVFile)r).path + "'>" + r.getName() + "</a></td>");
-				ps.println("<td align='right'>"+StringUtil.displaySizeInBytes(((WebDAVFile)r).getContentLength())+"</td>");
-				ps.println("<td align='right'>"+r.getModifiedDate()+"</td>");
+				WebDAVFile f = (WebDAVFile)r;
+				VMFSDriver.FileMetaInfo fmi = f.getVmfsFileMetaInfo();
+				switch (fmi.fmr.type )
+				{
+					case VMFSDriver.TYPE_META:
+					case VMFSDriver.TYPE_FILE:
+						ps.println("<td><a href='"+ f.path + "'>" + r.getName() + "</a></td>");
+						ps.println("<td align='right'>"+StringUtil.displaySizeInBytes(f.getContentLength())+"</td>");
+						ps.println("<td align='right'>"+r.getModifiedDate()+"</td>");
+						break;
+					case VMFSDriver.TYPE_FOLDER:
+						ps.println("<td><a href='"+ f.path + "'>" + r.getName() + "</a></td>");
+						ps.println("<td align='right'>(dir)</td>");
+						ps.println("<td align='right'>"+r.getModifiedDate()+"</td>");
+						break;
+					case VMFSDriver.TYPE_SYMLINK:
+						ps.println("<td>" + r.getName() + "</td>");
+						ps.println("<td align='right'>(symlink)</td>");
+						ps.println("<td align='right'>"+r.getModifiedDate()+"</td>");
+						String lnk = vmfs.getSymLink(fmi.fr);
+						ps.println("<td>&rarr; <a href='"+extern("/"+lnk)+"'>"+ lnk +"</a></td>");
+						break;
+					case VMFSDriver.TYPE_RDM:
+						ps.println("<td>" + r.getName() + "</td>");
+						ps.println("<td align='right'>(rdm)</td>");
+						ps.println("<td align='right'>"+r.getModifiedDate()+"</td>");
+						ps.println("<td>&rarr; Type='"+ fmi.rdm.lunType__28+"' UUID='"+fmi.rdm.lunUuid__17+"'");
+						break;
+					default:
+						ps.println("<td>" + r.getName() + "</td>");
+						ps.println("<td align='right'>(unknown:"+fmi.fmr.type+")</td>");
+						ps.println("<td align='right'>"+r.getModifiedDate()+"</td>");
+				}
 				ps.println("</tr>");
 			}
 			ps.println("</table>");
